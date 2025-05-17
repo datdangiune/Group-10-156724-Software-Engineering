@@ -1,8 +1,10 @@
 const express = require('express')
-const app = express()
+const app = express();
 const sequelize = require('./database');
 const route = require('./routes/index');
-const port = 3000
+const dotenv = require('dotenv');
+dotenv.config();
+const port = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 route(app)

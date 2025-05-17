@@ -1,5 +1,5 @@
 const Admin = require('../models/admin');
-const {genAccessToken, genRefreshToken} = require('../middleware/jwt')
+const {genAccessToken, genRefreshToken} = require('../util/jwt');
 const bcrypt = require('bcrypt');
 
 class AuthController {
@@ -10,9 +10,10 @@ class AuthController {
             if (existingAdmin) {
                 return res.status(400).json({ message: 'Email already exists' });
             }
-            const newAdmin = await Admin.create({ email, password, fullname, role: 'admin', phoneNumber });
-            return res.status(201).json({ message: 'Admin created successfully', admin: newAdmin });
+            await Admin.create({ email, password, fullname, role: 'admin', phoneNumber });
+            return res.status(201).json({ message: 'Admin created successfully'});
         } catch (error) {
+          
             return res.status(500).json({ message: 'Server error', error });
         }
     }
@@ -28,11 +29,13 @@ class AuthController {
                 return res.status(400).json({ message: 'Invalid email or password' });
             }
             const accessToken = genAccessToken(admin.id, admin.role, admin.fullname, admin.email);
+            console.log('Access token:', accessToken);
             const refreshToken = genRefreshToken(admin.id);
             res.cookie('accessToken', accessToken, { httpOnly: true });
             await Admin.update({ refreshToken }, { where: { id: admin.id } });
             return res.sendStatus(200);
         } catch (error) {
+               console.error(error); 
             return res.status(500).json({ message: 'Server error', error });
         }
     }

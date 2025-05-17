@@ -4,3 +4,4 @@ function routes(app) {
     app.use(`/${base}auth`, auth);
 
 }
+module.exports = routes;
