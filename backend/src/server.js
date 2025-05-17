@@ -1,9 +1,11 @@
 const express = require('express')
 const app = express()
 const sequelize = require('./database');
+const route = require('./routes/index');
 const port = 3000
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+route(app)
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
