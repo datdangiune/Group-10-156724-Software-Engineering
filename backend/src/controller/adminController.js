@@ -1,4 +1,4 @@
-const { Household, UserHousehold, User } = require('../models/index');
+const { Household, UserHousehold, User, FeeService } = require('../models/index');
 
 const getHouseholdUsersInfo = async (req, res) => {
   try {
@@ -129,7 +129,7 @@ const createUsers = async (req, res) => {
 
     // Kiểm tra các trường bắt buộc
     for (const user of usersData) {
-      if (!user.email || !user.fullname || !user.phoneNumber || !user.gender || !user.cccd) {
+      if (!user.email || !user.fullname || !user.phoneNumber || !user.gender || !user.cccd ||!user.dateOfBirth) {
         return res.status(400).json({ message: 'Each user must have email, fullname, phoneNumber, gender, cccd' });
       }
     }
@@ -147,9 +147,79 @@ const createUsers = async (req, res) => {
   }
 };
 
+const getAllUsersInHousehold = async (req, res) => {
+  try {
+    const userHouseholds = await UserHousehold.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ['fullname', 'dateOfBirth', 'gender']
+        }
+      ],
+      attributes: ['roleInFamily', 'householdId']
+    });
+
+    const result = userHouseholds.map(uh => ({
+      fullname: uh.User ? uh.User.fullname : null,
+      dateOfBirth: uh.User ? uh.User.dateOfBirth : null,
+      gender: uh.User ? uh.User.gender : null,
+      roleInFamily: uh.roleInFamily,
+      householdId: uh.householdId
+    }));
+
+    res.status(200).json({
+      message: "Get all users in households successfully",
+      total: result.length,
+      data: result
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const addFeeService = async (req, res) => {
+  try {
+    let feeServices = req.body;
+    if (!feeServices || (Array.isArray(feeServices) && feeServices.length === 0)) {
+      return res.status(400).json({ message: 'Input must be a non-empty object or array' });
+    }
+    if (!Array.isArray(feeServices)) {
+      feeServices = [feeServices];
+    }
+    for (const fee of feeServices) {
+      if (!fee.serviceName || fee.servicePrice == null || !fee.unit) {
+        return res.status(400).json({ message: 'Each feeService must have serviceName, servicePrice, unit' });
+      }
+    }
+    const created = await FeeService.bulkCreate(feeServices, { validate: true });
+    res.status(201).json({
+      message: 'FeeService(s) created successfully',
+      data: created,
+      totalCreated: created.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+const getFeeService = async(req, res) => {
+    const feeService = await FeeService.findAll();
+    if(!feeService){
+        return res.status(404).json({
+            message: 'FeeService not found'
+        })
+    }
+    res.status(200).json({
+        message: 'Get FeeService successfully',
+        data: feeService
+    })
+}
+
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
   addUserToHousehold,
   createUsers,
+  getAllUsersInHousehold,
+  addFeeService,
+  getFeeService
 };

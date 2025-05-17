@@ -6,4 +6,7 @@ route.get('/household', verifyTokenAdmin, adminController.getHouseholdUsersInfo)
 route.post('/household', verifyTokenAdmin, adminController.createHousehold)
 route.post('/addUserToHousehold', verifyTokenAdmin, adminController.addUserToHousehold)
 route.post('/addUser', verifyTokenAdmin, adminController.createUsers)
+route.get('/user', verifyTokenAdmin, adminController.getAllUsersInHousehold)
+route.post('/addFeeService', verifyTokenAdmin, adminController.addFeeService)
+route.get('/feeService', verifyTokenAdmin, adminController.getFeeService)
 module.exports = route

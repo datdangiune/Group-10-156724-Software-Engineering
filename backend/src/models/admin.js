@@ -26,7 +26,7 @@ const Admin = sequelize.define('Admin', {
         allowNull: false,
     },
     role: {
-        type: DataTypes.ENUM('admin', 'superadmin'),
+        type: DataTypes.STRING,
         allowNull: false,
     },
     refreshToken: {

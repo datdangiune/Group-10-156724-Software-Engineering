@@ -25,6 +25,10 @@ const User = sequelize.define('User', {
         type: DataTypes.ENUM('Nam', 'Nữ'),
         allowNull: false,
     },
+    dateOfBirth: {
+        type: DataTypes.DATE,
+        allowNull: false,
+    },
     cccd: {
         type: DataTypes.STRING,
         allowNull: false,

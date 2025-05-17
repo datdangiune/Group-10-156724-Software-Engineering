@@ -11,6 +11,11 @@ const FeeService = sequelize.define('FeeService', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    type: {
+        type: DataTypes.ENUM('Quản lý', 'Dịch vụ', 'Đỗ xe', 'Tiện ích', 'Điện', 'Nước'),
+        allowNull: false,
+        defaultValue: 'Dịch vụ',
+    },
     servicePrice: { 
         type: DataTypes.FLOAT,
         allowNull: false,
