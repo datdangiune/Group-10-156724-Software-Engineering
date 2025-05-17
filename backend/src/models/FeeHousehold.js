@@ -7,7 +7,7 @@ const FeeHousehold = sequelize.define('FeeHousehold', {
         primaryKey: true
     },
     householdId: {
-        type: DataTypes.UUID,
+        type: DataTypes.STRING(6),
         allowNull: false,
         references: {
             model: 'households',

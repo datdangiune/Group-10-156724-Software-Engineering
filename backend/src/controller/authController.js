@@ -19,10 +19,13 @@ class AuthController {
     }
     async login(req, res) {
         const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
         try {
             const admin = await Admin.findOne({ where: { email } });
             if (!admin) {
-                return res.status(400).json({ message: 'Invalid email or password' });
+                return res.status(400).json({ message: 'Tai khoan khong ton tai' });
             }
             const isMatch = await bcrypt.compare(password, admin.password);
             if (!isMatch) {
@@ -31,13 +34,83 @@ class AuthController {
             const accessToken = genAccessToken(admin.id, admin.role, admin.fullname, admin.email);
             console.log('Access token:', accessToken);
             const refreshToken = genRefreshToken(admin.id);
-            res.cookie('accessToken', accessToken, { httpOnly: true });
             await Admin.update({ refreshToken }, { where: { id: admin.id } });
-            return res.sendStatus(200);
+            res.cookie('refreshToken', refreshToken, {httpOnly: true, maxAge: 10*24*60*60*1000, sameSite: 'Lax'})
+            res.set({
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            });
+            return res.status(200).json({
+                message: 'Login successful',
+                accessToken: accessToken,
+            });
         } catch (error) {
                console.error(error); 
             return res.status(500).json({ message: 'Server error', error });
         }
     }
+    async resetAccessToken(req, res) {
+        const cookie = req.cookies;
+
+        if (!cookie || !cookie.refreshToken) {
+            return res.status(403).json({ message: "Refresh token is missing!" });
+        }
+
+        try {
+            const result = jwt.verify(cookie.refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+            const admin = await Admin.findOne({
+                where: {
+                    id: result.id, // hoặc result._id tùy thuộc genRefreshToken
+                    refreshToken: cookie.refreshToken
+                }
+            });
+
+            if (!admin) {
+                return res.status(403).json({ message: "Refresh token is invalid!" });
+            }
+
+            const newAccessToken = genAccessToken(admin.id, admin.role, admin.fullname, admin.email);
+
+            return res.status(200).json({
+                message: "Access token is generated successfully",
+                newAccessToken
+            });
+        } catch (err) {
+            console.error("Token verify error:", err);
+            return res.status(403).json({ message: "Refresh token is invalid!" });
+        }
+    }
+    async logout(req, res) {
+        console.log("Logout called");
+        const cookie = req.cookies;
+        const refreshToken = cookie?.refreshToken;
+
+        if (!refreshToken) {
+            console.log("No refresh token");
+            return res.status(403).json({ message: "Refresh token is missing!" });
+        }
+
+        try {
+            const admin = await Admin.findOne({ where: { refreshToken } });
+
+            if (!admin) {
+                return res.status(403).json({ message: "Refresh token is invalid!" });
+            }
+
+            await Admin.update(
+                { refreshToken: null },
+                { where: { id: admin.id } }
+            );
+
+            res.clearCookie('refreshToken', { httpOnly: true, secure: false }); // secure: true nếu dùng HTTPS
+            return res.status(200).json({ message: "Logout successfully" });
+        } catch (err) {
+            console.error("Logout error:", err);
+            return res.status(500).json({ message: "Server error" });
+        }
+    }
+
 }
 module.exports = new AuthController();

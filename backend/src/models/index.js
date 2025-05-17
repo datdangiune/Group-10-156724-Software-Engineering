@@ -9,8 +9,7 @@ const ContributionCampaign = require('./ContributionCampaign');
 const ContributionPayment = require('./ContributionPayment');
 
 // User - UserHousehold - Household
-User.belongsToMany(Household, { through: UserHousehold, foreignKey: 'userId', otherKey: 'householdId' });
-Household.belongsToMany(User, { through: UserHousehold, foreignKey: 'householdId', otherKey: 'userId' });
+
 UserHousehold.belongsTo(User, { foreignKey: 'userId' });
 UserHousehold.belongsTo(Household, { foreignKey: 'householdId' });
 User.hasMany(UserHousehold, { foreignKey: 'userId' });

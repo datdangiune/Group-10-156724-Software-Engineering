@@ -21,10 +21,6 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    roleInFamily: {
-        type: DataTypes.ENUM('Chồng', 'Vợ', 'Con', 'Chủ Hộ'),
-        allowNull: false,
-    },
     gender: {
         type: DataTypes.ENUM('Nam', 'Nữ'),
         allowNull: false,

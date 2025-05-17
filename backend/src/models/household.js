@@ -35,15 +35,7 @@ const Household = sequelize.define('Household', {
     area: {  //Diện tích
         type: DataTypes.FLOAT,
         allowNull: false,
-    },
-    phone: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    numberOfPeople: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
+    }
 }, {
     tableName: 'households',
     timestamps: true,

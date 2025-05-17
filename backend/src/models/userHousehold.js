@@ -22,6 +22,15 @@ const UserHousehold = sequelize.define('UserHousehold', {
       key: 'id',
     },
   },
+  roleInFamily: {
+    type: DataTypes.ENUM('Chủ hộ', 'Vợ', 'Chồng', 'Con', 'Ông', 'Bà', 'Khác'),
+    allowNull: false,
+  },
+  isOwner: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   joinedAt: {
     type: DataTypes.DATEONLY,
     defaultValue: DataTypes.NOW,
