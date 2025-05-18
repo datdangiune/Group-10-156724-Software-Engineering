@@ -35,7 +35,12 @@ const Household = sequelize.define('Household', {
     area: {  //Diện tích
         type: DataTypes.FLOAT,
         allowNull: false,
-    }
+    }, 
+    isActive: { //Trạng thái hoạt động
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
 }, {
     tableName: 'households',
     timestamps: true,

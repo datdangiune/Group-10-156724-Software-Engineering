@@ -25,7 +25,16 @@ const FeeHousehold = sequelize.define('FeeHousehold', {
     amount: {
         type: DataTypes.FLOAT,
         allowNull: false,
-    }
+    },
+    status: { // Tình trạng đóng: 'paid', 'pending', 'exempt' (miễn đóng)
+        type: DataTypes.ENUM('paid', 'pending', 'exempt'),
+        allowNull: false,
+        defaultValue: 'pending',
+    },
+    paymentDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
 }, {
   tableName: 'fee_households',
   timestamps: true,

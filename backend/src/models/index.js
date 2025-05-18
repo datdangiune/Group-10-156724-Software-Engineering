@@ -7,7 +7,7 @@ const FeeHousehold = require('./FeeHousehold');
 const ContributionFund = require('./ContributionFund');
 const ContributionCampaign = require('./ContributionCampaign');
 const ContributionPayment = require('./ContributionPayment');
-
+const UtilityUsage = require('./UtilityUsage');
 // User - UserHousehold - Household
 
 UserHousehold.belongsTo(User, { foreignKey: 'userId' });
@@ -35,6 +35,9 @@ ContributionPayment.belongsTo(ContributionCampaign, { foreignKey: 'contributionC
 Household.hasMany(ContributionPayment, { foreignKey: 'householdId' });
 ContributionPayment.belongsTo(Household, { foreignKey: 'householdId' });
 
+
+Household.hasMany(UtilityUsage, { foreignKey: 'householdId' });
+UtilityUsage.belongsTo(Household, { foreignKey: 'householdId' });
 // Export models nếu cần
 module.exports = {
   User,
@@ -46,4 +49,5 @@ module.exports = {
   ContributionFund,
   ContributionCampaign,
   ContributionPayment,
+  UtilityUsage
 };

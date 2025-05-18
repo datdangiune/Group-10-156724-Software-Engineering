@@ -1,5 +1,5 @@
-const { Household, UserHousehold, User, FeeService } = require('../models/index');
-
+const { Household, UserHousehold, User, FeeService, UtilityUsage, FeeHousehold } = require('../models/index');
+const { Op } = require('sequelize');
 const getHouseholdUsersInfo = async (req, res) => {
   try {
     const households = await Household.findAll({
@@ -105,7 +105,7 @@ const addUserToHousehold = async (req, res) => {
       isOwner: isOwner ?? false,
       joinedAt: joinedAt || new Date()
     });
-
+    await Household.update({ isActive: true }, { where: { id: householdId } });
     res.status(201).json({
       message: 'User added to household successfully',
       data: userHousehold
@@ -187,7 +187,7 @@ const addFeeService = async (req, res) => {
       feeServices = [feeServices];
     }
     for (const fee of feeServices) {
-      if (!fee.serviceName || fee.servicePrice == null || !fee.unit) {
+      if (!fee.serviceName || fee.servicePrice == null || !fee.unit || !fee.type) {
         return res.status(400).json({ message: 'Each feeService must have serviceName, servicePrice, unit' });
       }
     }
@@ -214,6 +214,144 @@ const getFeeService = async(req, res) => {
     })
 }
 
+const addHouseholdsToUtilityUsage = async (req, res) => {
+  try {
+    const { householdId, month, electricity, water, internet } = req.body;
+    if (!householdId || !month || electricity == null || water == null || internet == null) {
+      return res.status(400).json({ message: 'Missing required fields: householdId, month, electricity, water, internet' });
+    }
+
+    // Kiểm tra household tồn tại và isActive
+    const household = await Household.findOne({ where: { id: householdId, isActive: true } });
+    if (!household) {
+      return res.status(404).json({ message: 'Household not found or not active' });
+    }
+
+    // Kiểm tra đã tồn tại utility usage cho household này/tháng này chưa
+    const existed = await UtilityUsage.findOne({ where: { householdId, month } });
+    if (existed) {
+      return res.status(400).json({ message: 'Utility usage for this household and month already exists' });
+    }
+
+    // Lấy giá điện, nước, internet từ FeeService
+    const [electricFee, waterFee, internetFee] = await Promise.all([
+      FeeService.findOne({ where: { type: 'Điện' } }),
+      FeeService.findOne({ where: { type: 'Nước' } }),
+      FeeService.findOne({ where: { type: 'Internet' } }),
+    ]);
+    console.log(electricFee, waterFee, internetFee);
+    if (!electricFee || !waterFee) {
+      return res.status(400).json({ message: 'Electricity or water fee service not found' });
+    }
+
+    // Tính giá
+    const electricity_price = electricity * electricFee.servicePrice;
+    const water_price = water * waterFee.servicePrice;
+    const internet_price = (internet && internetFee) ? internetFee.servicePrice : 0;
+    const total_price = electricity_price + water_price + internet_price;
+
+    const usage = await UtilityUsage.create({
+      householdId,
+      month,
+      electricity,
+      water,
+      internet,
+      internet_price,
+      electricity_price,
+      water_price,
+      total_price
+    });
+
+    res.status(201).json({
+      message: 'Utility usage created successfully',
+      data: usage
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+const getUtilityUsage = async (req, res) => {
+  try {
+    const data = await UtilityUsage.findAll()
+    if (!data) {
+      return res.status(404).json({ message: 'No utility usage found' });
+    }
+    res.status(200).json({
+      message: 'Get utility usage successfully',
+      data: data
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+const autoCreateFeeHouseholdForNewMonth = async (req, res) => {
+  try {
+    // Lấy tháng hiện tại dạng YYYY-MM
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Tính ngày đầu tháng này và tháng kế tiếp
+    const startOfMonth = new Date(`${month}-01`);
+    const endOfMonth = new Date(startOfMonth);
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1); // cộng thêm 1 tháng
+
+    // Lấy các household đang hoạt động
+    const households = await Household.findAll({ where: { isActive: true } });
+
+    // Lấy các feeService mặc định (Quản lý, Dịch vụ)
+    const feeServices = await FeeService.findAll({
+      where: { type: ['Quản lý', 'Dịch vụ'] }
+    });
+
+    if (!feeServices.length) {
+      return res.status(400).json({ message: 'No default fee services found' });
+    }
+
+    const feeHouseholdToCreate = [];
+
+    for (const household of households) {
+      for (const fee of feeServices) {
+        // Kiểm tra đã tồn tại chưa (tránh tạo trùng trong tháng)
+        const existed = await FeeHousehold.findOne({
+          where: {
+            householdId: household.id,
+            feeServiceId: fee.id,
+            createdAt: {
+              [Op.gte]: startOfMonth,
+              [Op.lt]: endOfMonth
+            }
+          }
+        });
+        if (existed) continue;
+
+        // Tính amount = price * diện tích
+        const amount = fee.servicePrice * household.area;
+        feeHouseholdToCreate.push({
+          householdId: household.id,
+          feeServiceId: fee.id,
+          amount
+        });
+      }
+    }
+
+    if (!feeHouseholdToCreate.length) {
+      return res.status(200).json({ message: 'No new feeHousehold records to create for this month' });
+    }
+
+    const created = await FeeHousehold.bulkCreate(feeHouseholdToCreate);
+
+    res.status(201).json({
+      message: 'FeeHousehold records created for active households for this month',
+      totalCreated: created.length,
+      data: created
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -221,5 +359,8 @@ module.exports = {
   createUsers,
   getAllUsersInHousehold,
   addFeeService,
-  getFeeService
+  getFeeService,
+  addHouseholdsToUtilityUsage,
+  getUtilityUsage,
+  autoCreateFeeHouseholdForNewMonth,
 };

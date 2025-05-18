@@ -9,4 +9,7 @@ route.post('/addUser', verifyTokenAdmin, adminController.createUsers)
 route.get('/user', verifyTokenAdmin, adminController.getAllUsersInHousehold)
 route.post('/addFeeService', verifyTokenAdmin, adminController.addFeeService)
 route.get('/feeService', verifyTokenAdmin, adminController.getFeeService)
+route.post('/addHouseholdsToUtilityUsage', verifyTokenAdmin, adminController.addHouseholdsToUtilityUsage)
+route.get('/utilityUsage', verifyTokenAdmin, adminController.getUtilityUsage)
+route.post('/autoCreateFeeHouseholdForNewMonth', verifyTokenAdmin, adminController.autoCreateFeeHouseholdForNewMonth)
 module.exports = route

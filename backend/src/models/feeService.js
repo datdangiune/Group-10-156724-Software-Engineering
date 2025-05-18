@@ -12,7 +12,7 @@ const FeeService = sequelize.define('FeeService', {
         allowNull: false,
     },
     type: {
-        type: DataTypes.ENUM('Quản lý', 'Dịch vụ', 'Đỗ xe', 'Tiện ích', 'Điện', 'Nước'),
+        type: DataTypes.ENUM('Quản lý', 'Dịch vụ', 'Đỗ xe', 'Tiện ích', 'Điện', 'Nước', 'Internet', 'Khác'),
         allowNull: false,
         defaultValue: 'Dịch vụ',
     },
@@ -22,7 +22,7 @@ const FeeService = sequelize.define('FeeService', {
     },
     unit: {
         type: DataTypes.STRING,
-        allowNull: false, // ví dụ: m2, căn hộ, lần, chiếc,...
+        allowNull: false, 
     },
     isRequired: {
         type: DataTypes.BOOLEAN,
