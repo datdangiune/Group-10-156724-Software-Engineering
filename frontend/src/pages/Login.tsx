@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-
-const Login = () => {
+import { useAuth } from "@/contexts/AuthContext";
+const LoginPage = () => {
   const navigate = useNavigate();
+  const { login, logout, isAuthenticated, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,18 +17,13 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Mock authentication - Replace with real authentication logic
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      if (email === "admin@bluemoon.com" && password === "admin123") {
-        // Store login info in localStorage
-        localStorage.setItem("blueMoonUser", JSON.stringify({ email, role: "admin" }));
+      const response = await login(email, password);
+      console.log("Login response:", response);
+      if (response) {
         toast({
           title: "Đăng nhập thành công",
-          description: "Chào mừng đến với hệ thống BlueMoon.",
+          description: "Chào mừng bạn đến với BlueMoon!",
         });
         navigate("/");
       } else {
@@ -128,4 +124,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default LoginPage;

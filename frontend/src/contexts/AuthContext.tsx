@@ -1,9 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-
+import { Login } from "@/service/auth";
+import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 interface User {
   email: string;
   role: string;
+  fullname: string;
 }
 
 interface AuthContextType {
@@ -12,7 +15,12 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
-
+interface UserDecoded {
+  email: string;
+  role: string;
+  fullname: string;
+  exp: number;
+}
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -28,24 +36,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   useEffect(() => {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem("blueMoonUser");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const userCookie = Cookies.get("accessToken");
+    if (userCookie) {
+      const decodedToken: UserDecoded = jwtDecode(userCookie);
+      setUser(decodedToken);
       setIsAuthenticated(true);
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // This is a mock authentication - replace with real authentication logic
-    if (email === "admin@bluemoon.com" && password === "admin123") {
-      const user = { email, role: "admin" };
-      localStorage.setItem("blueMoonUser", JSON.stringify(user));
-      setUser(user);
-      setIsAuthenticated(true);
-      return true;
+    try {
+      const response = await Login(email, password);
+      console.log("Login response:", response);
+      if (response) {
+        const decodedToken: UserDecoded = jwtDecode(response.accessToken);
+        setUser(decodedToken);
+        Cookies.set("accessToken", response.accessToken);
+        setIsAuthenticated(true);
+        return true;
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {

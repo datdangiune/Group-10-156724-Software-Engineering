@@ -8,28 +8,27 @@ class AuthController {
         try {
             const existingAdmin = await Admin.findOne({ where: { email } });
             if (existingAdmin) {
-                return res.status(400).json({ message: 'Email already exists' });
+                return res.status(400).json({ success: false, message: 'Email already exists' });
             }
             await Admin.create({ email, password, fullname, role: 'admin', phoneNumber });
-            return res.status(201).json({ message: 'Admin created successfully'});
+            return res.status(201).json({ success: true, message: 'Admin created successfully'});
         } catch (error) {
-          
-            return res.status(500).json({ message: 'Server error', error });
+            return res.status(500).json({ success: false, message: 'Server error', error });
         }
     }
     async login(req, res) {
         const { email, password } = req.body;
         if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
         }
         try {
             const admin = await Admin.findOne({ where: { email } });
             if (!admin) {
-                return res.status(400).json({ message: 'Tai khoan khong ton tai' });
+                return res.status(400).json({ success: false, message: 'Tai khoan khong ton tai' });
             }
             const isMatch = await bcrypt.compare(password, admin.password);
             if (!isMatch) {
-                return res.status(400).json({ message: 'Invalid email or password' });
+                return res.status(400).json({ success: false, message: 'Invalid email or password' });
             }
             const accessToken = genAccessToken(admin.id, admin.role, admin.fullname, admin.email);
             console.log('Access token:', accessToken);
@@ -42,19 +41,20 @@ class AuthController {
                 'Expires': '0'
             });
             return res.status(200).json({
+                success: true,
                 message: 'Login successful',
                 accessToken: accessToken,
             });
         } catch (error) {
-               console.error(error); 
-            return res.status(500).json({ message: 'Server error', error });
+            console.error(error); 
+            return res.status(500).json({ success: false, message: 'Server error', error });
         }
     }
     async resetAccessToken(req, res) {
         const cookie = req.cookies;
 
         if (!cookie || !cookie.refreshToken) {
-            return res.status(403).json({ message: "Refresh token is missing!" });
+            return res.status(403).json({ success: false, message: "Refresh token is missing!" });
         }
 
         try {
@@ -68,18 +68,19 @@ class AuthController {
             });
 
             if (!admin) {
-                return res.status(403).json({ message: "Refresh token is invalid!" });
+                return res.status(403).json({ success: false, message: "Refresh token is invalid!" });
             }
 
             const newAccessToken = genAccessToken(admin.id, admin.role, admin.fullname, admin.email);
 
             return res.status(200).json({
+                success: true,
                 message: "Access token is generated successfully",
                 newAccessToken
             });
         } catch (err) {
             console.error("Token verify error:", err);
-            return res.status(403).json({ message: "Refresh token is invalid!" });
+            return res.status(403).json({ success: false, message: "Refresh token is invalid!" });
         }
     }
     async logout(req, res) {
@@ -89,14 +90,14 @@ class AuthController {
 
         if (!refreshToken) {
             console.log("No refresh token");
-            return res.status(403).json({ message: "Refresh token is missing!" });
+            return res.status(403).json({ success: false, message: "Refresh token is missing!" });
         }
 
         try {
             const admin = await Admin.findOne({ where: { refreshToken } });
 
             if (!admin) {
-                return res.status(403).json({ message: "Refresh token is invalid!" });
+                return res.status(403).json({ success: false, message: "Refresh token is invalid!" });
             }
 
             await Admin.update(
@@ -105,10 +106,10 @@ class AuthController {
             );
 
             res.clearCookie('refreshToken', { httpOnly: true, secure: false }); // secure: true nếu dùng HTTPS
-            return res.status(200).json({ message: "Logout successfully" });
+            return res.status(200).json({ success: true, message: "Logout successfully" });
         } catch (err) {
             console.error("Logout error:", err);
-            return res.status(500).json({ message: "Server error" });
+            return res.status(500).json({ success: false, message: "Server error" });
         }
     }
 

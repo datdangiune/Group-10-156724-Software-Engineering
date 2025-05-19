@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
-import Login from "./pages/Login";
+import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Households from "./pages/Households";
 import Residents from "./pages/Residents";
@@ -32,7 +32,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={
               <ProtectedRoute>
                 <DashboardLayout />

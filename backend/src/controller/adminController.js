@@ -46,12 +46,13 @@ const getHouseholdUsersInfo = async (req, res) => {
     });
 
     res.status(200).json({
-    message: "Get household users info successfully",
-    totalHouseholds: result.length,
-    data: result
+      success: true,
+      message: "Get household users info successfully",
+      totalHouseholds: result.length,
+      data: result
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -74,12 +75,13 @@ const createHousehold = async (req, res) => {
     const households = await Household.bulkCreate(householdsData);
 
     res.status(201).json({
+      success: true,
       message: 'Households created successfully',
       data: households,
       totalCreated: households.length
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -107,11 +109,12 @@ const addUserToHousehold = async (req, res) => {
     });
     await Household.update({ isActive: true }, { where: { id: householdId } });
     res.status(201).json({
+      success: true,
       message: 'User added to household successfully',
       data: userHousehold
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -138,12 +141,13 @@ const createUsers = async (req, res) => {
     const users = await User.bulkCreate(usersData, { validate: true });
 
     res.status(201).json({
+      success: true,
       message: 'Users created successfully',
       data: users,
       totalCreated: users.length
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -168,12 +172,13 @@ const getAllUsersInHousehold = async (req, res) => {
     }));
 
     res.status(200).json({
+      success: true,
       message: "Get all users in households successfully",
       total: result.length,
       data: result
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -193,25 +198,32 @@ const addFeeService = async (req, res) => {
     }
     const created = await FeeService.bulkCreate(feeServices, { validate: true });
     res.status(201).json({
+      success: true,
       message: 'FeeService(s) created successfully',
       data: created,
       totalCreated: created.length
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 const getFeeService = async(req, res) => {
+  try {
     const feeService = await FeeService.findAll();
     if(!feeService){
-        return res.status(404).json({
-            message: 'FeeService not found'
-        })
+      return res.status(404).json({
+        success: false,
+        message: 'FeeService not found'
+      });
     }
     res.status(200).json({
-        message: 'Get FeeService successfully',
-        data: feeService
-    })
+      success: true,
+      message: 'Get FeeService successfully',
+      data: feeService
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 }
 
 const addHouseholdsToUtilityUsage = async (req, res) => {
@@ -263,26 +275,27 @@ const addHouseholdsToUtilityUsage = async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       message: 'Utility usage created successfully',
       data: usage
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 const getUtilityUsage = async (req, res) => {
   try {
     const data = await UtilityUsage.findAll()
     if (!data) {
-      return res.status(404).json({ message: 'No utility usage found' });
+      return res.status(404).json({ success: false, message: 'No utility usage found' });
     }
     res.status(200).json({
+      success: true,
       message: 'Get utility usage successfully',
       data: data
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 }
 
@@ -306,7 +319,7 @@ const autoCreateFeeHouseholdForNewMonth = async (req, res) => {
     });
 
     if (!feeServices.length) {
-      return res.status(400).json({ message: 'No default fee services found' });
+      return res.status(400).json({ success: false, message: 'No default fee services found' });
     }
 
     const feeHouseholdToCreate = [];
@@ -337,18 +350,19 @@ const autoCreateFeeHouseholdForNewMonth = async (req, res) => {
     }
 
     if (!feeHouseholdToCreate.length) {
-      return res.status(200).json({ message: 'No new feeHousehold records to create for this month' });
+      return res.status(200).json({ success: true, message: 'No new feeHousehold records to create for this month' });
     }
 
     const created = await FeeHousehold.bulkCreate(feeHouseholdToCreate);
 
     res.status(201).json({
+      success: true,
       message: 'FeeHousehold records created for active households for this month',
       totalCreated: created.length,
       data: created
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
