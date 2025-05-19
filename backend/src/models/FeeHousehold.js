@@ -22,6 +22,24 @@ const FeeHousehold = sequelize.define('FeeHousehold', {
             key: 'id',
         },
     },
+    month: {
+        type: DataTypes.STRING(7), // YYYY-MM
+        allowNull: false,
+    },
+    water: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+    },
+    electricity: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+    },
+    internet: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
     amount: {
         type: DataTypes.FLOAT,
         allowNull: false,

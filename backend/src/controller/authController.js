@@ -116,7 +116,7 @@ class AuthController {
 
     async getAdminInfo(req, res) {
         try {
-            const adminId = req.user?.id || req.adminId || req.body.adminId || req.query.adminId;
+            const adminId = req.user?._id || req.adminId || req.body.adminId || req.query.adminId;
             if (!adminId) {
                 return res.status(400).json({ success: false, message: 'Missing admin id' });
             }

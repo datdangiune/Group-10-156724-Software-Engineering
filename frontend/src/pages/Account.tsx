@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Lock, Key } from "lucide-react";
-
+import { useAdminInfo } from "@/hooks/useHouseholds";
 // Schema for profile information validation
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -50,19 +49,21 @@ const Account = () => {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const { data: adminInfo } = useAdminInfo();
 
-  // Default form values
+  // Default form values lấy từ adminInfo nếu có
   const defaultProfileValues: Partial<ProfileFormValues> = {
-    name: "Quản Trị Viên",
-    email: user?.email || "admin@bluemoon.com",
-    phone: "0912345678",
-    position: "Trưởng Ban Quản Lý",
+    name: adminInfo?.fullname || "Quản Trị Viên",
+    email: adminInfo?.email || user?.email || "admin@bluemoon.com",
+    phone: adminInfo?.phoneNumber || "0912345678",
+    position: adminInfo.role ? adminInfo.role : "Quản Trị Viên",
   };
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: defaultProfileValues,
+    values: defaultProfileValues, // Đảm bảo cập nhật khi adminInfo thay đổi
   });
 
   // Password form
@@ -214,6 +215,7 @@ const Account = () => {
                     <FormField
                       control={profileForm.control}
                       name="position"
+                      disabled
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Chức vụ</FormLabel>

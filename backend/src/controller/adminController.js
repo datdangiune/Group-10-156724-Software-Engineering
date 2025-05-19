@@ -82,7 +82,7 @@ const createHousehold = async (req, res) => {
 
     // Kiểm tra tất cả phần tử phải có apartmentNumber và area
     for (const item of householdsData) {
-      if (!item.apartmentNumber || !item.area) {
+      if (!item.apartmentNumber || !item.area || !item.id) {
         return res.status(400).json({ message: 'Each household must have apartmentNumber and area' });
       }
     }

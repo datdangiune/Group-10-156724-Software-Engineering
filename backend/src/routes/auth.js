@@ -5,4 +5,7 @@ const {verifyTokenAdmin} = require('../middleware/veritify')
 route.post('/register', authController.register)
 route.post('/login', authController.login)
 route.post('/logout', verifyTokenAdmin,authController.logout)
+route.get('/admininfo', verifyTokenAdmin, authController.getAdminInfo)
+route.post('/updateAdminInfo', verifyTokenAdmin, authController.updateAdminInfo)
+route.post('/changePassword', verifyTokenAdmin, authController.changeAdminPassword)
 module.exports = route

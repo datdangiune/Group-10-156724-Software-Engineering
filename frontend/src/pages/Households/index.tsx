@@ -82,12 +82,7 @@ const Households = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Quản lý hộ gia đình</h2>
-          <p className="text-muted-foreground">
-            Quản lý danh sách các hộ gia đình và thông tin cư dân.
-          </p>
-        </div>
+    
         
         <Button onClick={() => handleAddEdit()}>
           <Plus className="mr-2 h-4 w-4" />
