@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem("blueMoonUser");
+    Cookies.remove("accessToken");
     setUser(null);
     setIsAuthenticated(false);
   };

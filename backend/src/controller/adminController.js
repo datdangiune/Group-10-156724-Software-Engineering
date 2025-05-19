@@ -1,9 +1,19 @@
 const { Household, UserHousehold, User, FeeService, UtilityUsage, FeeHousehold } = require('../models/index');
 const { Op } = require('sequelize');
 const getHouseholdUsersInfo = async (req, res) => {
-  try {
+  try { 
+    const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+    const limit = 7;
+    const offset = (page - 1) * limit;
+
+    const totalHouseholds = await UserHousehold.count({
+      where: { isOwner: true },
+    });
+
+
+    // Lấy households phân trang
     const households = await Household.findAll({
-      attributes: ['id'],
+      attributes: ['id', 'isActive'],
       include: [
         {
           model: UserHousehold,
@@ -16,7 +26,9 @@ const getHouseholdUsersInfo = async (req, res) => {
             }
           ]
         }
-      ]
+      ],
+      offset,
+      limit
     });
 
     // Đếm số người trong từng household
@@ -45,17 +57,21 @@ const getHouseholdUsersInfo = async (req, res) => {
       };
     });
 
+    const totalPages = Math.ceil(totalHouseholds / limit);
+
     res.status(200).json({
       success: true,
       message: "Get household users info successfully",
-      totalHouseholds: result.length,
+      totalHouseholds,
+      page,
+      limit,
+      totalPages,
       data: result
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
-
 const createHousehold = async (req, res) => {
   try {
     const householdsData = req.body; // kỳ vọng nhận mảng [{apartmentNumber, area}, ...]
@@ -84,7 +100,6 @@ const createHousehold = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
-
 const addUserToHousehold = async (req, res) => {
   try {
     const { userId, householdId, roleInFamily, isOwner, joinedAt } = req.body;
@@ -153,29 +168,41 @@ const createUsers = async (req, res) => {
 
 const getAllUsersInHousehold = async (req, res) => {
   try {
-    const userHouseholds = await UserHousehold.findAll({
+    const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+    const limit = 7;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await UserHousehold.findAndCountAll({
       include: [
         {
           model: User,
-          attributes: ['fullname', 'dateOfBirth', 'gender', 'id']
+          attributes: ['fullname', 'dateOfBirth', 'gender', 'id', 'cccd']
         }
       ],
-      attributes: ['roleInFamily', 'householdId']
+      attributes: ['roleInFamily', 'householdId'],
+      offset,
+      limit
     });
 
-    const result = userHouseholds.map(uh => ({
+    const totalPages = Math.ceil(count / limit);
+
+    const result = rows.map(uh => ({
       userId: uh.User ? uh.User.id : null,
       fullname: uh.User ? uh.User.fullname : null,
       dateOfBirth: uh.User ? uh.User.dateOfBirth : null,
       gender: uh.User ? uh.User.gender : null,
       roleInFamily: uh.roleInFamily,
-      householdId: uh.householdId
+      householdId: uh.householdId,
+      cccd: uh.User ? uh.User.cccd : null
     }));
 
     res.status(200).json({
       success: true,
       message: "Get all users in households successfully",
-      total: result.length,
+      total: count,
+      page,
+      limit,
+      totalPages,
       data: result
     });
   } catch (err) {
@@ -366,7 +393,103 @@ const autoCreateFeeHouseholdForNewMonth = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+const addHouseholdAndUser = async (req, res) => {
+  try {
+    const { householdId, owner, members } = req.body;
+    if (!householdId || !owner || !owner.email || !owner.fullname || !owner.phoneNumber || !owner.gender || !owner.dateOfBirth || !owner.cccd) {
+      return res.status(400).json({ success: false, message: 'Missing required fields for household or owner' });
+    }
 
+    // Kiểm tra household tồn tại và isActive
+    const household = await Household.findOne({ where: { id: householdId, isActive: false} });
+    if (!household) {
+      return res.status(404).json({ success: false, message: 'Household not found or hired' });
+    }
+
+    // Tạo user chủ hộ
+    const ownerUser = await User.create({
+      email: owner.email,
+      fullname: owner.fullname,
+      phoneNumber: owner.phoneNumber,
+      gender: owner.gender,
+      dateOfBirth: owner.dateOfBirth,
+      cccd: owner.cccd
+    });
+
+    // Thêm chủ hộ vào UserHousehold
+    await UserHousehold.create({
+      userId: ownerUser.id,
+      householdId,
+      roleInFamily: 'Chủ hộ',
+      isOwner: true,
+      joinedAt: new Date()
+    });
+    await Household.update({ isActive: true }, { where: { id: householdId } });
+    // Thêm các thành viên khác (nếu có)
+    let memberResults = [];
+    if (Array.isArray(members) && members.length > 0) {
+      for (const member of members) {
+        if (!member.email || !member.fullname || !member.phoneNumber || !member.gender || !member.dateOfBirth || !member.cccd || !member.roleInFamily) {
+          return res.status(400).json({ success: false, message: 'Each member must have email, fullname, phoneNumber, gender, dateOfBirth, cccd, roleInFamily' });
+        }
+        // Tạo user thành viên
+        const user = await User.create({
+          email: member.email,
+          fullname: member.fullname,
+          phoneNumber: member.phoneNumber,
+          gender: member.gender,
+          dateOfBirth: member.dateOfBirth,
+          cccd: member.cccd
+        });
+        // Thêm vào UserHousehold
+        const userHousehold = await UserHousehold.create({
+          userId: user.id,
+          householdId,
+          roleInFamily: member.roleInFamily,
+          isOwner: false,
+          joinedAt: new Date()
+        });
+        memberResults.push({ user, userHousehold });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Household owner and members added successfully',
+      owner: ownerUser,
+      members: memberResults.map(m => m.user)
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+const getHouseholdUnactive = async (req, res) => {
+  try {
+    const response = await Household.findAll({
+      attributes: ['id', 'area'],
+      where: {
+        isActive: false
+      }
+    });
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No unactive household found'
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Get unactive household successfully',
+      data: response
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -378,4 +501,6 @@ module.exports = {
   addHouseholdsToUtilityUsage,
   getUtilityUsage,
   autoCreateFeeHouseholdForNewMonth,
+  addHouseholdAndUser,
+  getHouseholdUnactive
 };

@@ -1,6 +1,7 @@
 const Admin = require('../models/admin');
 const {genAccessToken, genRefreshToken} = require('../util/jwt');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 class AuthController {
     async register(req, res) {
@@ -113,5 +114,68 @@ class AuthController {
         }
     }
 
+    async getAdminInfo(req, res) {
+        try {
+            const adminId = req.user?.id || req.adminId || req.body.adminId || req.query.adminId;
+            if (!adminId) {
+                return res.status(400).json({ success: false, message: 'Missing admin id' });
+            }
+            const admin = await Admin.findByPk(adminId, {
+                attributes: { exclude: ['password', 'refreshToken'] }
+            });
+            if (!admin) {
+                return res.status(404).json({ success: false, message: 'Admin not found' });
+            }
+            return res.status(200).json({ success: true, data: admin });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: 'Server error', error });
+        }
+    }
+
+    async updateAdminInfo(req, res) {
+        try {
+            const adminId = req.user?.id || req.adminId || req.body.adminId || req.query.adminId;
+            const { fullname, phoneNumber } = req.body;
+            if (!adminId) {
+                return res.status(400).json({ success: false, message: 'Missing admin id' });
+            }
+            const admin = await Admin.findByPk(adminId);
+            if (!admin) {
+                return res.status(404).json({ success: false, message: 'Admin not found' });
+            }
+            if (fullname) admin.fullname = fullname;
+            if (phoneNumber) admin.phoneNumber = phoneNumber;
+            await admin.save();
+            return res.status(200).json({ success: true, message: 'Admin info updated successfully', data: admin });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: 'Server error', error });
+        }
+    }
+
+    async changeAdminPassword(req, res) {
+        try {
+            const adminId = req.user?.id || req.adminId || req.body.adminId || req.query.adminId;
+            const { oldPassword, newPassword } = req.body;
+            if (!adminId || !oldPassword || !newPassword) {
+                return res.status(400).json({ success: false, message: 'Missing required fields' });
+            }
+            const admin = await Admin.findByPk(adminId);
+            if (!admin) {
+                return res.status(404).json({ success: false, message: 'Admin not found' });
+            }
+            const isMatch = await bcrypt.compare(oldPassword, admin.password);
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: 'Old password is incorrect' });
+            }
+            const salt = await bcrypt.genSalt(10);
+            admin.password = await bcrypt.hash(newPassword, salt);
+            await admin.save();
+            return res.status(200).json({ success: true, message: 'Password changed successfully' });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: 'Server error', error });
+        }
+    }
+
 }
+
 module.exports = new AuthController();

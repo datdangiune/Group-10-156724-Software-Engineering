@@ -1,5 +1,4 @@
-
-import { useState, useEffect} from "react";
+import { useState } from "react";
 import { 
   Card, 
   CardContent, 
@@ -30,39 +29,24 @@ import { Search, MoreHorizontal, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Cookies from "js-cookie";
+import { AddHouseholdDialog } from "./AddHouseholdDialog";
 import { useHouseholds } from "@/hooks/useHouseholds";
 const Households = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentHousehold, setCurrentHousehold] = useState<any>(null);
-//  const [households, setHouseholds] = useState<Household_User[]>([]);
- // const accessToken = Cookies.get("accessToken");
-  const { data: Household_User, isLoading, error } = useHouseholds();
-  // useEffect(() => {
-  //   const fetchHouseholdUser = async () => {
-  //     try {
-  //       const response = await getHousehold(accessToken);
-  //       if (response.success) {
-  //         setHouseholds(response.data);
-  //       } else {
-  //         toast({
-  //           title: "Lỗi",
-  //           description: response.message,
-  //         });
-  //       }
-  //     } catch (error) {
-  //       toast({
-  //         title: "Lỗi",
-  //         description: "Không thể tải dữ liệu hộ gia đình.",
-  //       });
-  //     }
-  //   }
-  //   fetchHouseholdUser();
-  // }, [accessToken]);
-  const filteredHouseholds = Array.isArray(Household_User) 
-    ? Household_User.filter(household => 
-        household.householdId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = useHouseholds(page);
+
+  const households = data?.data || [];
+  const total = data?.totalHouseholds || 0;
+  const totalPages = data?.totalPages || 1;
+ 
+
+  const filteredHouseholds = Array.isArray(households)
+    ? households.filter(household =>
+        household.householdId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         household.fullname?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : [];
@@ -115,7 +99,7 @@ const Households = () => {
         <CardHeader>
           <CardTitle>Danh sách hộ gia đình</CardTitle>
           <CardDescription>
-            Tổng cộng có {Household_User.length} hộ gia đình.
+            Tổng cộng có {households.length} hộ gia đình.
           </CardDescription>
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -178,70 +162,36 @@ const Households = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredHouseholds.length} trên tổng số {Household_User.length} hộ gia đình
+            Hiển thị {filteredHouseholds.length} trên tổng số {total} hộ gia đình
           </div>
-          {/* Pagination can be added here */}
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Trước
+            </Button>
+            <span>
+              Trang {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Sau
+            </Button>
+          </div>
         </CardFooter>
       </Card>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{currentHousehold ? "Sửa hộ gia đình" : "Thêm hộ gia đình mới"}</DialogTitle>
-            <DialogDescription>
-              {currentHousehold ? "Cập nhật thông tin hộ gia đình" : "Nhập thông tin hộ gia đình mới"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="apartmentNumber" className="text-right">
-                Căn hộ
-              </Label>
-              <Input
-                id="apartmentNumber"
-                defaultValue={currentHousehold?.apartmentNumber || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="owner" className="text-right">
-                Chủ hộ
-              </Label>
-              <Input
-                id="owner"
-                defaultValue={currentHousehold?.owner || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Số điện thoại
-              </Label>
-              <Input
-                id="phone"
-                defaultValue={currentHousehold?.phone || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                defaultValue={currentHousehold?.email || ""}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleSave}>Lưu</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddHouseholdDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        household={currentHousehold}
+      />
     </div>
   );
 };

@@ -1,5 +1,4 @@
-
-import { useState, useEffect} from "react";
+import { useState } from "react";
 import { 
   Card, 
   CardContent, 
@@ -17,33 +16,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreHorizontal, Plus } from "lucide-react";
-import { getUserInHousehold, Household_User} from "@/service/admin_v1";
+import { Search, MoreHorizontal } from "lucide-react";
 import { useUserINHouseholds } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
 const Residents = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  //const [residents, setResidents] = useState<Household_User[]>([]);
-  //const accessToken = Cookies.get("accessToken");
-  const { data: residents, isLoading, error } = useUserINHouseholds();
-  // useEffect(() => {
-  //   const fetchResidents = async () => {
-  //     try {
-  //       const response = await getUserInHousehold(accessToken);
-  //       if(!response.success){
-  //         throw new Error(response.message);
-  //       }
-  //       setResidents(response.data);
-  //     } catch (error) {
-  //       if (error instanceof Error) {
-  //         console.error("Error fetching residents:", error.message);
-  //       } else {
-  //         console.error("Unexpected error:", error);
-  //       }
-  //     }
-  //   }
-  //   fetchResidents();
-  // }, [accessToken]);
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = useUserINHouseholds(page);
+
+  const residents = data?.data || [];
+  const total = data?.total || 0;
+  const totalPages = data?.totalPages || 1;
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -67,10 +51,6 @@ const Residents = () => {
               Quản lý thông tin các cư dân trong tòa nhà
             </CardDescription>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm cư dân
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 mb-4">
@@ -90,6 +70,7 @@ const Residents = () => {
                 <TableHead>Giới tính</TableHead>
                 <TableHead>Quan hệ với chủ hộ</TableHead>
                 <TableHead>Căn hộ</TableHead>
+                <TableHead>CCCD/CMND</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -101,6 +82,7 @@ const Residents = () => {
                   <TableCell>{resident.gender}</TableCell>
                   <TableCell>{resident.roleInFamily}</TableCell>
                   <TableCell>{resident.householdId}</TableCell>
+                  <TableCell>{resident.cccd}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -128,9 +110,29 @@ const Residents = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredResidents.length} trên tổng số {residents.length} cư dân
+            Hiển thị {filteredResidents.length} trên tổng số {total} cư dân
           </div>
-          {/* Pagination can be added here */}
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Trước
+            </Button>
+            <span>
+              Trang {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Sau
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>

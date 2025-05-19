@@ -29,17 +29,7 @@ import {
 import { Search, MoreHorizontal, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data for fee types
-const mockFeeTypes = [
-  { id: 1, name: "Phí quản lý", type: "management", amount: 12000, unit: "m²", mandatory: true },
-  { id: 2, name: "Phí dịch vụ", type: "service", amount: 8000, unit: "m²", mandatory: true },
-  { id: 3, name: "Phí gửi xe máy", type: "parking", amount: 70000, unit: "xe", mandatory: false },
-  { id: 4, name: "Phí gửi ô tô", type: "parking", amount: 1200000, unit: "xe", mandatory: false },
-  { id: 5, name: "Phí điện", type: "utility", amount: 3500, unit: "kWh", mandatory: true },
-  { id: 6, name: "Phí nước", type: "utility", amount: 15000, unit: "m³", mandatory: true },
-  { id: 7, name: "Phí Internet", type: "utility", amount: 200000, unit: "căn hộ", mandatory: false },
-];
+import { useFeeService } from "@/hooks/useHouseholds";
 
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
@@ -51,28 +41,28 @@ const formatCurrency = (value: number) => {
 };
 
 // Translate fee type to Vietnamese
-const translateFeeType = (type: string) => {
-  const types: Record<string, string> = {
-    "management": "Quản lý",
-    "service": "Dịch vụ",
-    "parking": "Đỗ xe",
-    "utility": "Tiện ích",
-    "donation": "Quyên góp"
-  };
-  return types[type] || type;
-};
+// const translateFeeType = (type: string) => {
+//   const types: Record<string, string> = {
+//     "management": "Quản lý",
+//     "service": "Dịch vụ",
+//     "parking": "Đỗ xe",
+//     "utility": "Tiện ích",
+//     "donation": "Quyên góp"
+//   };
+//   return types[type] || type;
+// };
 
 const FeeTypes = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentFee, setCurrentFee] = useState<any>(null);
-  
-  const filteredFeeTypes = mockFeeTypes.filter(fee => 
-    fee.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    translateFeeType(fee.type).toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+  const {data: feeTypes, isLoading, error} = useFeeService();
+  const filteredFeeTypes =  Array.isArray(feeTypes) ? feeTypes.filter(fee => 
+    fee.serviceName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    fee.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    fee.unit?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
   const handleAddEdit = (fee: any = null) => {
     setCurrentFee(fee);
     setIsDialogOpen(true);
@@ -86,13 +76,18 @@ const FeeTypes = () => {
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     toast({
       title: "Loại phí đã được xóa",
       description: "Dữ liệu loại phí đã được xóa thành công.",
     });
   };
-  
+  if (isLoading) {
+    return <div>Đang tải dữ liệu...</div>;
+  }
+  if (error) {
+    return <div>Có lỗi xảy ra: {(error as Error).message}</div>;
+  }
   return (
     <div className="space-y-6">
       <Card>
@@ -132,11 +127,11 @@ const FeeTypes = () => {
             <TableBody>
               {filteredFeeTypes.map((fee) => (
                 <TableRow key={fee.id}>
-                  <TableCell className="font-medium">{fee.name}</TableCell>
-                  <TableCell>{translateFeeType(fee.type)}</TableCell>
-                  <TableCell>{formatCurrency(fee.amount)}</TableCell>
+                  <TableCell className="font-medium">{fee.serviceName}</TableCell>
+                  <TableCell>{fee.type}</TableCell>
+                  <TableCell>{formatCurrency(fee.servicePrice)}</TableCell>
                   <TableCell>{fee.unit}</TableCell>
-                  <TableCell>{fee.mandatory ? "Có" : "Không"}</TableCell>
+                  <TableCell>{fee.isRequired ? "Có" : "Không"}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -168,7 +163,7 @@ const FeeTypes = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredFeeTypes.length} trên tổng số {mockFeeTypes.length} loại phí
+            Hiển thị {filteredFeeTypes.length} trên tổng số {feeTypes.length} loại phí
           </div>
         </CardFooter>
       </Card>
