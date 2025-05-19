@@ -157,13 +157,14 @@ const getAllUsersInHousehold = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['fullname', 'dateOfBirth', 'gender']
+          attributes: ['fullname', 'dateOfBirth', 'gender', 'id']
         }
       ],
       attributes: ['roleInFamily', 'householdId']
     });
 
     const result = userHouseholds.map(uh => ({
+      userId: uh.User ? uh.User.id : null,
       fullname: uh.User ? uh.User.fullname : null,
       dateOfBirth: uh.User ? uh.User.dateOfBirth : null,
       gender: uh.User ? uh.User.gender : null,

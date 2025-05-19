@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { 
   Card, 
   CardContent, 
@@ -18,25 +18,45 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Search, MoreHorizontal, Plus } from "lucide-react";
-
-// Mock data for residents
-const mockResidents = [
-  { id: 1, householdId: 1, name: "Nguyễn Văn An", dob: "1975-05-20", gender: "Nam", relationship: "Chủ hộ" },
-  { id: 2, householdId: 1, name: "Nguyễn Thị Lan", dob: "1980-08-15", gender: "Nữ", relationship: "Vợ" },
-  { id: 3, householdId: 1, name: "Nguyễn Minh Tuấn", dob: "2005-03-10", gender: "Nam", relationship: "Con" },
-  { id: 4, householdId: 1, name: "Nguyễn Thùy Linh", dob: "2010-12-05", gender: "Nữ", relationship: "Con" },
-  { id: 5, householdId: 2, name: "Trần Thị Mai", dob: "1982-04-23", gender: "Nữ", relationship: "Chủ hộ" },
-  { id: 6, householdId: 2, name: "Lê Văn Hùng", dob: "1980-09-18", gender: "Nam", relationship: "Chồng" },
-  { id: 7, householdId: 2, name: "Lê Minh Anh", dob: "2012-06-30", gender: "Nữ", relationship: "Con" },
-];
-
+import { getUserInHousehold, Household_User} from "@/service/admin_v1";
+import { useUserINHouseholds } from "@/hooks/useHouseholds";
+import Cookies from "js-cookie";
 const Residents = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const filteredResidents = mockResidents.filter(resident => 
-    resident.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
+  //const [residents, setResidents] = useState<Household_User[]>([]);
+  //const accessToken = Cookies.get("accessToken");
+  const { data: residents, isLoading, error } = useUserINHouseholds();
+  // useEffect(() => {
+  //   const fetchResidents = async () => {
+  //     try {
+  //       const response = await getUserInHousehold(accessToken);
+  //       if(!response.success){
+  //         throw new Error(response.message);
+  //       }
+  //       setResidents(response.data);
+  //     } catch (error) {
+  //       if (error instanceof Error) {
+  //         console.error("Error fetching residents:", error.message);
+  //       } else {
+  //         console.error("Unexpected error:", error);
+  //       }
+  //     }
+  //   }
+  //   fetchResidents();
+  // }, [accessToken]);
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+  const filteredResidents = Array.isArray(residents) 
+    ? residents.filter((resident) => 
+        resident.householdId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        resident.fullname?.toLowerCase().includes(searchTerm.toLowerCase())
+      ) 
+    : [];
+
   return (
     <div className="space-y-6">
       <Card>
@@ -75,12 +95,12 @@ const Residents = () => {
             </TableHeader>
             <TableBody>
               {filteredResidents.map((resident) => (
-                <TableRow key={resident.id}>
-                  <TableCell className="font-medium">{resident.name}</TableCell>
-                  <TableCell>{new Date(resident.dob).toLocaleDateString('vi-VN')}</TableCell>
+                <TableRow key={resident.userId}>
+                  <TableCell className="font-medium">{resident.fullname}</TableCell>
+                  <TableCell>{new Date(resident.dateOfBirth).toLocaleDateString('vi-VN')}</TableCell>
                   <TableCell>{resident.gender}</TableCell>
-                  <TableCell>{resident.relationship}</TableCell>
-                  <TableCell>Căn hộ #{resident.householdId}</TableCell>
+                  <TableCell>{resident.roleInFamily}</TableCell>
+                  <TableCell>{resident.householdId}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -108,7 +128,7 @@ const Residents = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredResidents.length} trên tổng số {mockResidents.length} cư dân
+            Hiển thị {filteredResidents.length} trên tổng số {residents.length} cư dân
           </div>
           {/* Pagination can be added here */}
         </CardFooter>

@@ -34,15 +34,23 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
   useEffect(() => {
-    const userCookie = Cookies.get("accessToken");
-    if (userCookie) {
-      const decodedToken: UserDecoded = jwtDecode(userCookie);
-      setUser(decodedToken);
-      setIsAuthenticated(true);
+    const token = Cookies.get("accessToken");
+    console.log("Token from cookies:", token);
+    console.log(isAuthenticated)
+    if (token) {
+      try {
+        const decodedToken: UserDecoded = jwtDecode(token);
+        setUser(decodedToken);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error("Invalid token:", error);
+        setUser(null);
+        setIsAuthenticated(false);
+      }
     }
   }, []);
+
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { 
   Card, 
   CardContent, 
@@ -29,27 +29,52 @@ import {
 import { Search, MoreHorizontal, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data for households
-const mockHouseholds = [
-  { id: 1, apartmentNumber: "A1201", owner: "Nguyễn Văn An", phone: "0912345678", email: "nguyenvanan@example.com", residentCount: 4 },
-  { id: 2, apartmentNumber: "B0502", owner: "Trần Thị Mai", phone: "0923456789", email: "tranthimai@example.com", residentCount: 3 },
-  { id: 3, apartmentNumber: "C1803", owner: "Lê Minh Tuấn", phone: "0934567890", email: "leminhtuan@example.com", residentCount: 5 },
-  { id: 4, apartmentNumber: "D0704", owner: "Phạm Hoàng Linh", phone: "0945678901", email: "phamhoanglinh@example.com", residentCount: 2 },
-  { id: 5, apartmentNumber: "A0601", owner: "Vũ Thị Hương", phone: "0956789012", email: "vuthihuong@example.com", residentCount: 1 },
-];
-
+import Cookies from "js-cookie";
+import { useHouseholds } from "@/hooks/useHouseholds";
 const Households = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentHousehold, setCurrentHousehold] = useState<any>(null);
-  
-  const filteredHouseholds = mockHouseholds.filter(household => 
-    household.apartmentNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    household.owner.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+//  const [households, setHouseholds] = useState<Household_User[]>([]);
+ // const accessToken = Cookies.get("accessToken");
+  const { data: Household_User, isLoading, error } = useHouseholds();
+  // useEffect(() => {
+  //   const fetchHouseholdUser = async () => {
+  //     try {
+  //       const response = await getHousehold(accessToken);
+  //       if (response.success) {
+  //         setHouseholds(response.data);
+  //       } else {
+  //         toast({
+  //           title: "Lỗi",
+  //           description: response.message,
+  //         });
+  //       }
+  //     } catch (error) {
+  //       toast({
+  //         title: "Lỗi",
+  //         description: "Không thể tải dữ liệu hộ gia đình.",
+  //       });
+  //     }
+  //   }
+  //   fetchHouseholdUser();
+  // }, [accessToken]);
+  const filteredHouseholds = Array.isArray(Household_User) 
+    ? Household_User.filter(household => 
+        household.householdId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        household.fullname?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
+
+  if (isLoading) {
+    return <div>Đang tải dữ liệu...</div>;
+  }
+
+  if (error) {
+    return <div>Có lỗi xảy ra: {(error as Error).message}</div>;
+  }
   const handleAddEdit = (household: any = null) => {
     setCurrentHousehold(household);
     setIsDialogOpen(true);
@@ -63,7 +88,7 @@ const Households = () => {
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     toast({
       title: "Hộ gia đình đã được xóa",
       description: "Dữ liệu hộ gia đình đã được xóa thành công.",
@@ -90,7 +115,7 @@ const Households = () => {
         <CardHeader>
           <CardTitle>Danh sách hộ gia đình</CardTitle>
           <CardDescription>
-            Tổng cộng có {mockHouseholds.length} hộ gia đình.
+            Tổng cộng có {Household_User.length} hộ gia đình.
           </CardDescription>
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -116,12 +141,12 @@ const Households = () => {
             </TableHeader>
             <TableBody>
               {filteredHouseholds.map((household) => (
-                <TableRow key={household.id}>
-                  <TableCell className="font-medium">{household.apartmentNumber}</TableCell>
-                  <TableCell>{household.owner}</TableCell>
-                  <TableCell>{household.phone}</TableCell>
+                <TableRow key={household.householdId}>
+                  <TableCell className="font-medium">{household.householdId}</TableCell>
+                  <TableCell>{household.fullname}</TableCell>
+                  <TableCell>{household.phoneNumber}</TableCell>
                   <TableCell>{household.email}</TableCell>
-                  <TableCell>{household.residentCount}</TableCell>
+                  <TableCell>{household.memberCount}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -133,7 +158,7 @@ const Households = () => {
                         <DropdownMenuItem onClick={() => handleAddEdit(household)}>
                           Chỉnh sửa
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(household.id)}>
+                        <DropdownMenuItem onClick={() => handleDelete(household.householdId)}>
                           Xóa
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -153,7 +178,7 @@ const Households = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredHouseholds.length} trên tổng số {mockHouseholds.length} hộ gia đình
+            Hiển thị {filteredHouseholds.length} trên tổng số {Household_User.length} hộ gia đình
           </div>
           {/* Pagination can be added here */}
         </CardFooter>
