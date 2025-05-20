@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { getHousehold, getUserInHousehold, getFeeService, getHouseholdUnactive, getFeeUtility, getHouseholdActive } from "@/service/admin_v1";
+import { getHousehold, getUserInHousehold, getFeeService, getHouseholdInuse,getHouseholdUnactive, getFeeUtility, getHouseholdActive } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
+import {getVehicle} from "@/service/admin_v2";
 import Cookies from "js-cookie";
 import { useToast } from "@/hooks/use-toast";
 const staleTime = 1000 * 60 * 5; // 5 minutes
@@ -165,7 +166,7 @@ export const useFeeUtility = (month: string) => {
     })
 }
 
-export const useHouseholdActive = (month) => {
+export const useHouseholdActive = (month: string) => {
     const {toast} = useToast();
     const accessToken = Cookies.get("accessToken");
     return useQuery({
@@ -173,6 +174,60 @@ export const useHouseholdActive = (month) => {
         queryFn: async () => {
             try {
                 const response = await getHouseholdActive(accessToken, month);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu hộ gia đình.",
+                });
+            }
+        },
+        staleTime: staleTime, // 5 minutes
+        gcTime: gcTime, // 5 minutes
+    })
+}
+
+export const useHouseholdUInuse = () => {
+    const {toast} = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['householdInuse'],
+        queryFn: async () => {
+            try {
+                const response = await getHouseholdInuse(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu hộ gia đình.",
+                });
+            }
+        },
+        staleTime: staleTime, // 5 minutes
+        gcTime: gcTime, // 5 minutes
+    })
+}
+
+export const useVehicle = () => {
+    const {toast} = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['vehicle'],
+        queryFn: async () => {
+            try {
+                const response = await getVehicle(accessToken);
                 if (!response.success) {
                     toast({
                         title: "Lỗi",

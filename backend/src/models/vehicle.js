@@ -8,13 +8,13 @@ const Vehicle = sequelize.define('Vehicle', {
         primaryKey: true,
         allowNull: false,
     },
-    plateNumber: {  //biển số xe
+    plateNumber: {  
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
     },
     vehicleType: {
-        type: DataTypes.ENUM('car', 'motorcycle', 'bicycle'),
+        type: DataTypes.ENUM('Xe máy', 'Ô tô', 'Xe đạp'),
         allowNull: false,
     },
     householdId: {
@@ -24,8 +24,12 @@ const Vehicle = sequelize.define('Vehicle', {
             model: 'households',
             key: 'id',
         },
-        onDelete: 'CASCADE',   // Xóa xe khi hộ bị xóa
-    },  
+        onDelete: 'CASCADE',  
+    },
+    pricePerMonth: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+    }, 
 }, {
     tableName: 'vehicles',
     timestamps: true,

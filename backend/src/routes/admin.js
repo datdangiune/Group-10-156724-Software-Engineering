@@ -1,6 +1,7 @@
 const express = require('express')
 const route = express.Router()
 const adminController = require('../controller/adminController')
+const adminController_v2 = require('../controller/adminController_V2')
 const {verifyTokenAdmin} = require('../middleware/veritify')
 route.get('/household', verifyTokenAdmin, adminController.getHouseholdUsersInfo)
 route.post('/household', verifyTokenAdmin, adminController.createHousehold)
@@ -14,4 +15,7 @@ route.get('/getHouseholdUnactive', verifyTokenAdmin, adminController.getHousehol
 route.get('/activeHousehold', verifyTokenAdmin, adminController.getHouseholdActive)
 route.post('/addFeeUtility', verifyTokenAdmin, adminController.addFeeUtilityHouseholdPerMonth)
 route.get('/getFeeUtility', verifyTokenAdmin, adminController.getFeeUtilityHouseholdPerMonth)
+route.get('/householdInuse', verifyTokenAdmin, adminController.getHouseholdInuse)
+route.post('/addVehicle', verifyTokenAdmin, adminController_v2.addVehicle)
+route.get('/getVehicle', verifyTokenAdmin, adminController_v2.getVehicle)
 module.exports = route

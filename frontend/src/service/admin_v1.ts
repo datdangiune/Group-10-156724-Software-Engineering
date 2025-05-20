@@ -254,3 +254,24 @@ export async function addFeeUtility(data: FeeUtility, accessToken: string) {
         
     }
 }
+
+export async function getHouseholdInuse(accessToken: string): Promise<getHouseholdUnactiveResponse> {
+    try {
+        const response = await axios.get(`${url}/admin/householdInuse`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: getHouseholdUnactiveResponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}

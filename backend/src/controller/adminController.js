@@ -1,4 +1,4 @@
-const { Household, UserHousehold, User, FeeService, UtilityUsage, FeeHousehold } = require('../models/index');
+const { Household, UserHousehold, User, FeeService,  FeeHousehold } = require('../models/index');
 const { Op } = require('sequelize');
 const getHouseholdUsersInfo = async (req, res) => {
   try { 
@@ -560,6 +560,33 @@ const getFeeUtilityHouseholdPerMonth = async (req, res) => {
       });
   }
 }
+const getHouseholdInuse= async (req, res) => {
+  try {
+    const response = await Household.findAll({
+      attributes: ['id', 'area'],
+      where: {
+        isActive: true
+      }
+    });
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No household found'
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Get household successfully',
+      data: response
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -572,5 +599,6 @@ module.exports = {
   getHouseholdUnactive,
   addFeeUtilityHouseholdPerMonth,
   getFeeUtilityHouseholdPerMonth,
-  getHouseholdActive
+  getHouseholdActive,
+  getHouseholdInuse
 };

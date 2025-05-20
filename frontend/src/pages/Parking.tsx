@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -28,17 +27,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-
-// Mock data for vehicles
-const mockVehicles = [
-  { id: 1, household: "A1201", type: "car", licensePlate: "51F-123.45", active: true, fee: 1200000 },
-  { id: 2, household: "A1201", type: "motorbike", licensePlate: "59P1-12345", active: true, fee: 70000 },
-  { id: 3, household: "B0502", type: "motorbike", licensePlate: "59M2-54321", active: true, fee: 70000 },
-  { id: 4, household: "C1803", type: "car", licensePlate: "51G-678.90", active: true, fee: 1200000 },
-  { id: 5, household: "C1803", type: "motorbike", licensePlate: "59P2-67890", active: false, fee: 0 },
-  { id: 6, household: "D0704", type: "motorbike", licensePlate: "59N1-13579", active: true, fee: 70000 },
-  { id: 7, household: "A0601", type: "motorbike", licensePlate: "59M1-24680", active: true, fee: 70000 },
-];
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { addVehicle } from "@/service/admin_v2";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useHouseholdUInuse, useVehicle } from "@/hooks/useHouseholds";
+import Cookies from "js-cookie";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
@@ -49,43 +53,96 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Translate vehicle type to Vietnamese
-const translateVehicleType = (type: string) => {
-  return type === "car" ? "Ô tô" : "Xe máy";
-};
 
+const vehicleFormSchema = z.object({
+  householdId: z.string({
+    required_error: "Vui lòng chọn căn hộ",
+  }),
+  plateNumber: z.string({
+    required_error: "Vui lòng nhập biển số",
+  }).min(1, "Vui lòng nhập biển số"),
+  vehicleType: z.enum(["Xe máy", "Ô tô", "Xe đạp"], {
+    errorMap: () => ({ message: "Vui lòng chọn loại phương tiện" }),
+  }),
+});
+type VehicleFormValues = z.infer<typeof vehicleFormSchema>;
 const Parking = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentVehicle, setCurrentVehicle] = useState<any>(null);
-  
-  const filteredVehicles = mockVehicles.filter(vehicle => 
-    vehicle.household.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase())
+  const accessToken = Cookies.get("accessToken");
+  const { data: vehicles } = useVehicle();
+  const queryClient = useQueryClient();
+  const { data: households } = useHouseholdUInuse();
+  const  vehicleDatas = Array.isArray(vehicles) ? vehicles : [];
+  const filteredVehicles = vehicleDatas.filter(vehicle => 
+    vehicle.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    vehicle.vehicleType.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
+  const form = useForm<VehicleFormValues>({
+      resolver: zodResolver(vehicleFormSchema),
+      defaultValues: {
+        householdId: "",
+        plateNumber: "",
+        vehicleType: "Xe máy",
+      },
+  });
   const handleAddEdit = (vehicle: any = null) => {
-    setCurrentVehicle(vehicle);
-    setIsDialogOpen(true);
+      setCurrentVehicle(vehicle);
+      if (vehicle) {
+        // Edit mode - populate form with existing data
+        form.reset({
+          householdId: vehicle.household,
+          plateNumber: vehicle.licensePlate,
+          vehicleType: vehicle.type,
+        });
+      } else {
+        // Add mode - reset form
+        form.reset({
+          householdId: "",
+          plateNumber: "",
+          vehicleType: "Xe máy",
+        });
+      }
+      setIsDialogOpen(true);
   };
+    const onSubmit = async (data: VehicleFormValues) => {
+      console.log("Form submitted:", data);
+      const vehicleData = {
+        householdId: data.householdId,
+        plateNumber: data.plateNumber,
+        vehicleType: data.vehicleType,
+      };
+      try {
+        await addVehicle(vehicleData, accessToken);
+        queryClient.invalidateQueries({queryKey: ['vehicle']});
+        // queryClient.invalidateQueries({queryKey: ['householdActive']});
+        toast({
+          title: currentVehicle ? "Dữ liệu phương tiện đã được cập nhật" : "Dữ liệu phương tiện mới đã được thêm",
+          description: `Thao tác với phương tiện căn hộ ${data.householdId} thành công.`,
+        });
+      
+        setIsDialogOpen(false);
+      } catch (error) {
+        toast({
+          title: "Lỗi",
+          description: "Bạn đã thêm dữ liệu phương tiện cho hộ gia đình này rồi",
+          onError: error,
+        });
+        return;
+      }
+  
+    };
 
-  const handleSave = () => {
-    toast({
-      title: currentVehicle ? "Thông tin phương tiện đã được cập nhật" : "Phương tiện mới đã được thêm",
-      description: `Thao tác với phương tiện biển số ${currentVehicle?.licensePlate || 'mới'} thành công.`,
-    });
-    setIsDialogOpen(false);
-  };
-
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     toast({
       title: "Phương tiện đã được xóa",
       description: "Dữ liệu phương tiện đã được xóa thành công.",
     });
   };
 
-  const toggleActive = (id: number, currentActive: boolean) => {
+  const toggleActive = (id: string, currentActive: boolean) => {
     toast({
       title: currentActive ? "Phương tiện đã bị vô hiệu hóa" : "Phương tiện đã được kích hoạt",
       description: `Trạng thái phương tiện đã được thay đổi thành ${currentActive ? 'không hoạt động' : 'hoạt động'}.`,
@@ -123,27 +180,18 @@ const Parking = () => {
                 <TableHead>Căn hộ</TableHead>
                 <TableHead>Loại phương tiện</TableHead>
                 <TableHead>Biển số</TableHead>
-                <TableHead>Trạng thái</TableHead>
                 <TableHead>Phí hàng tháng</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredVehicles.map((vehicle) => (
-                <TableRow key={vehicle.id}>
-                  <TableCell className="font-medium">{vehicle.household}</TableCell>
-                  <TableCell>{translateVehicleType(vehicle.type)}</TableCell>
-                  <TableCell>{vehicle.licensePlate}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      vehicle.active 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {vehicle.active ? 'Hoạt động' : 'Không hoạt động'}
-                    </span>
-                  </TableCell>
-                  <TableCell>{vehicle.active ? formatCurrency(vehicle.fee) : '-'}</TableCell>
+                <TableRow key={vehicle.plateNumber}>
+                  <TableCell className="font-medium">{vehicle.householdId}</TableCell>
+                  <TableCell>{vehicle.vehicleType}</TableCell>
+                  <TableCell>{vehicle.plateNumber}</TableCell>
+    
+                  <TableCell>{formatCurrency(vehicle.pricePerMonth)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -155,10 +203,7 @@ const Parking = () => {
                         <DropdownMenuItem onClick={() => handleAddEdit(vehicle)}>
                           Chỉnh sửa
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleActive(vehicle.id, vehicle.active)}>
-                          {vehicle.active ? 'Vô hiệu hóa' : 'Kích hoạt'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(vehicle.id)}>
+                        <DropdownMenuItem onClick={() => handleDelete(vehicle.plateNumber)}>
                           Xóa
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -178,61 +223,106 @@ const Parking = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredVehicles.length} trên tổng số {mockVehicles.length} phương tiện
+            Hiển thị {filteredVehicles.length} trên tổng số {vehicleDatas.length} phương tiện
           </div>
         </CardFooter>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
-              {currentVehicle ? "Sửa thông tin phương tiện" : "Thêm phương tiện mới"}
+              {currentVehicle ? "Sửa thông tin phương tiện" : "Thêm thông tin phương tiện mới"}
             </DialogTitle>
             <DialogDescription>
-              {currentVehicle ? "Cập nhật thông tin phương tiện" : "Nhập thông tin phương tiện mới"}
+              {currentVehicle ? "Cập nhật dữ liệu phương tiện" : "Nhập dữ liệu phương tiện mới"}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="household" className="text-right">
-                Căn hộ
-              </Label>
-              <Input
-                id="household"
-                defaultValue={currentVehicle?.household || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="type" className="text-right">
-                Loại phương tiện
-              </Label>
-              <Input
-                id="type"
-                defaultValue={currentVehicle?.type || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="licensePlate" className="text-right">
-                Biển số
-              </Label>
-              <Input
-                id="licensePlate"
-                defaultValue={currentVehicle?.licensePlate || ""}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleSave}>Lưu</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="householdId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Căn hộ</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn căn hộ" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {households?.map((household, id) => (
+                    <SelectItem key={id} value={household.id}>
+                      {household.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="plateNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Biển số xe</FormLabel>
+                <FormControl>
+                  <Input
+                    type="string"
+                    placeholder="Nhập biển số xe"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
+                </FormControl>
+                <FormDescription>Biển số xe</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="vehicleType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Loại phương tiện</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn loại phương tiện" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Xe máy">Xe máy</SelectItem>
+                    <SelectItem value="Ô tô">Ô tô</SelectItem>
+                    <SelectItem value="Xe đạp">Xe đạp</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            Hủy
+          </Button>
+          <Button type="submit">Lưu</Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  </DialogContent>
+</Dialog>
     </div>
   );
 };
