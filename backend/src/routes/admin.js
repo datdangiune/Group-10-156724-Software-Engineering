@@ -16,6 +16,8 @@ route.get('/activeHousehold', verifyTokenAdmin, adminController.getHouseholdActi
 route.post('/addFeeUtility', verifyTokenAdmin, adminController.addFeeUtilityHouseholdPerMonth)
 route.get('/getFeeUtility', verifyTokenAdmin, adminController.getFeeUtilityHouseholdPerMonth)
 route.get('/householdInuse', verifyTokenAdmin, adminController.getHouseholdInuse)
+route.post('/autoAdd', verifyTokenAdmin, adminController.autoAddManagementAndServiceFee)
+route.get('/getAll', verifyTokenAdmin, adminController.getAllManagementAndServiceFees)
 route.post('/addVehicle', verifyTokenAdmin, adminController_v2.addVehicle)
 route.get('/getVehicle', verifyTokenAdmin, adminController_v2.getVehicle)
 module.exports = route

@@ -129,6 +129,7 @@ export const AddHouseholdDialog = ({
           ...householdData,
           householdId: selectedApartment || householdData.householdId,
       };
+      console.log(payload);
       const result = await addHouseholdAndUser(payload, accessToken || "");
       if (result.success) {
           toast({
@@ -136,7 +137,8 @@ export const AddHouseholdDialog = ({
               description: `Hộ gia đình ${householdData.householdId} đã được ${isEditing ? "cập nhật" : "thêm"} thành công.`,
           });
           queryClient.invalidateQueries({queryKey: ["households"]});
-          queryClient.invalidateQueries({queryKey: ["userInHouseholds"]});      
+          queryClient.invalidateQueries({queryKey: ["userInHouseholds"]});  
+          queryClient.invalidateQueries({queryKey: ["householdUnactive"]});    
           onOpenChange(false);
       } else {
         toast({

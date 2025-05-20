@@ -200,9 +200,6 @@ const Parking = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleAddEdit(vehicle)}>
-                          Chỉnh sửa
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete(vehicle.plateNumber)}>
                           Xóa
                         </DropdownMenuItem>

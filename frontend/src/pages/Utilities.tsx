@@ -202,7 +202,6 @@ const Utilities = () => {
                 <TableHead>Internet</TableHead>
                 <TableHead>Tổng phí</TableHead>
                 <TableHead>Trạng thái</TableHead>
-                <TableHead>Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -227,25 +226,6 @@ const Utilities = () => {
                     }`}>
                       {utility.statusPayment === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
                     </span>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleAddEdit(utility)}>
-                          Chỉnh sửa
-                        </DropdownMenuItem>
-                        {utility.statusPayment !== 'paid' && (
-                          <DropdownMenuItem onClick={() => markAsPaid(utility.householdId)}>
-                            Đánh dấu đã thu
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

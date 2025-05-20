@@ -275,3 +275,59 @@ export async function getHouseholdInuse(accessToken: string): Promise<getHouseho
         }
     }
 }
+
+export async function autoAdd(accessToken: string, month: string) {
+    try {
+        const response = await axios.post(`${url}/admin/autoAdd?month=${month}`, {},{
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}
+type getAllFee = {
+    id: string;
+    householdId: string;
+    feeServiceId: string;
+    month: string;
+    amount: number;
+    status: string;
+    paymentDate: Date;
+    FeeService: FeeService;
+}
+interface getAllReponse {
+    success: boolean;
+    message: string;
+    data: getAllFee[];
+}
+export async function getAllFee(accessToken: string, month: string): Promise<getAllReponse> {
+    try {
+        const response = await axios.get(`${url}/admin/getAll?month=${month}`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: getAllReponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}

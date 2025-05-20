@@ -11,23 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { autoAdd } from "@/service/admin_v1";
+import { useGetAll } from "@/hooks/useHouseholds";
+import Cookies from "js-cookie";
+import { useQueryClient } from "@tanstack/react-query";
 
-// Mock data for monthly fees
-const mockMonthlyFees = [
-  { id: 1, household: "A1201", feeName: "Phí quản lý", amount: 1440000, status: "paid", paidAt: "2025-05-05T10:30:00" },
-  { id: 2, household: "A1201", feeName: "Phí dịch vụ", amount: 960000, status: "paid", paidAt: "2025-05-05T10:30:00" },
-  { id: 3, household: "A1201", feeName: "Phí gửi xe máy", amount: 140000, status: "paid", paidAt: "2025-05-05T10:30:00" },
-  { id: 4, household: "A1201", feeName: "Phí điện", amount: 875000, status: "unpaid", paidAt: null },
-  { id: 5, household: "A1201", feeName: "Phí nước", amount: 375000, status: "unpaid", paidAt: null },
-  { id: 6, household: "B0502", feeName: "Phí quản lý", amount: 720000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-  { id: 7, household: "B0502", feeName: "Phí dịch vụ", amount: 480000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-  { id: 8, household: "B0502", feeName: "Phí điện", amount: 462000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-  { id: 9, household: "B0502", feeName: "Phí nước", amount: 195000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-  { id: 10, household: "B0502", feeName: "Phí Internet", amount: 200000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-];
 
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
@@ -42,26 +33,37 @@ const MonthlyFees = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [month, setMonth] = useState("2025-05"); // Default to current month
-  
-  const filteredFees = mockMonthlyFees.filter(fee => 
-    fee.household.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    fee.feeName.toLowerCase().includes(searchTerm.toLowerCase())
+  const accessToken = Cookies.get("accessToken");
+  const { data: mockMonthlyFees } = useGetAll(month);
+  const queryClient = useQueryClient();
+  console.log(accessToken)
+  const filteredFees = (mockMonthlyFees ?? []).filter(fee => 
+    fee?.householdId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    fee?.status?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const markAsPaid = (id: number) => {
-    toast({
-      title: "Đã đánh dấu đã thanh toán",
-      description: "Khoản phí đã được đánh dấu là đã thanh toán.",
-    });
-  };
-
-  const markAsUnpaid = (id: number) => {
-    toast({
-      title: "Đã đánh dấu chưa thanh toán",
-      description: "Khoản phí đã được đánh dấu là chưa thanh toán.",
-    });
-  };
-  
+  const handleAutoAdd = async () => {
+    try {
+      const response = await autoAdd(accessToken, month);
+      console.log(accessToken)
+      if (response.success) {
+        queryClient.invalidateQueries({queryKey: ['getAllFeeService', month]});
+        toast({
+          title: "Thành công",
+          description: "Đã tự động thu phí cho tháng này.",
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: response.message,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tự động thu phí.",
+      });
+    }
+  }
   return (
     <div className="space-y-6">
       <Card>
@@ -90,8 +92,13 @@ const MonthlyFees = () => {
                 className="w-64"
               />
             </div>
+          <Button  onClick={handleAutoAdd} className="ml-auto">
+            <Plus className="mr-2 h-4 w-4" />
+              Tự động thu phí
+          </Button>
           </div>
         </CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
@@ -101,14 +108,13 @@ const MonthlyFees = () => {
                 <TableHead>Số tiền</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày thanh toán</TableHead>
-                <TableHead>Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredFees.map((fee) => (
                 <TableRow key={fee.id}>
-                  <TableCell className="font-medium">{fee.household}</TableCell>
-                  <TableCell>{fee.feeName}</TableCell>
+                  <TableCell className="font-medium">{fee.householdId}</TableCell>
+                  <TableCell>{fee.FeeService.serviceName}</TableCell>
                   <TableCell>{formatCurrency(fee.amount)}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
@@ -120,28 +126,9 @@ const MonthlyFees = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {fee.paidAt 
-                      ? new Date(fee.paidAt).toLocaleString('vi-VN') 
+                    {fee.status === 'paid'
+                      ? new Date(fee.paymentDate).toLocaleString('vi-VN')
                       : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {fee.status === 'unpaid' ? (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => markAsPaid(fee.id)}
-                      >
-                        Đánh dấu đã thu
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => markAsUnpaid(fee.id)}
-                      >
-                        Đánh dấu chưa thu
-                      </Button>
-                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -157,7 +144,7 @@ const MonthlyFees = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredFees.length} trên tổng số {mockMonthlyFees.length} khoản phí
+            Hiển thị {filteredFees?.length} trên tổng số {mockMonthlyFees?.length} khoản phí
           </div>
         </CardFooter>
       </Card>

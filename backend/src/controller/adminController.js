@@ -321,8 +321,12 @@ const addHouseholdAndUser = async (req, res) => {
       members: memberResults.map(m => m.user)
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+      console.error(error); // <-- in rõ lỗi
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({ success: false, message: 'Email hoặc CCCD đã tồn tại' });
+      }
+      return res.status(500).json({ success: false, error: error.message });
+  } 
 };
 const getHouseholdUnactive = async (req, res) => {
   try {
@@ -587,6 +591,149 @@ const getHouseholdInuse= async (req, res) => {
     });
   }
 }
+const autoAddManagementAndServiceFee = async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (!month) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required query param: month",
+      });
+    }
+    const isValidFormat = /^\d{4}-\d{2}$/.test(month);
+    if (!isValidFormat) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid month format. Expected format is YYYY-MM",
+      });
+    }
+    const currentDate = new Date();
+    const currentMonth = currentDate.toISOString().slice(0, 7);
+    if (month > currentMonth) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot add fees for future months",
+      });
+    }
+    // Lấy tất cả household đang hoạt động
+    const households = await Household.findAll({
+      where: { isActive: true },
+      attributes: ['id', 'area'],
+      raw: true,
+    });
+
+    // Lấy thông tin phí quản lý và phí dịch vụ
+    const managementFeeId = "0c740662-c6e9-473c-b68d-5d25f935a208";
+    const serviceFeeId = "1fb63de8-fb8c-496d-8721-ffbe614989ca";
+    const [managementFee, serviceFee] = await Promise.all([
+      FeeService.findByPk(managementFeeId),
+      FeeService.findByPk(serviceFeeId),
+    ]);
+    if (!managementFee || !serviceFee) {
+      return res.status(404).json({
+        success: false,
+        message: "Management or Service FeeService not found",
+      });
+    }
+
+    // Lấy tất cả householdId đã có record trong tháng này
+    const existed = await FeeHousehold.findAll({
+      where: {
+        month,
+        feeServiceId: { [Op.in]: [managementFeeId, serviceFeeId] },
+      },
+      attributes: ['householdId', 'feeServiceId'],
+      raw: true,
+    });
+    const existedSet = new Set(existed.map(e => `${e.householdId}_${e.feeServiceId}`));
+
+    // Tạo danh sách cần insert cho các household chưa có phí trong tháng này
+    const recordsToCreate = [];
+    for (const hh of households) {
+      // Phí quản lý
+      if (!existedSet.has(`${hh.id}_${managementFeeId}`)) {
+        recordsToCreate.push({
+          householdId: hh.id,
+          feeServiceId: managementFeeId,
+          month,
+          amount: managementFee.servicePrice * hh.area,
+        });
+      }
+      // Phí dịch vụ
+      if (!existedSet.has(`${hh.id}_${serviceFeeId}`)) {
+        recordsToCreate.push({
+          householdId: hh.id,
+          feeServiceId: serviceFeeId,
+          month,
+          amount: serviceFee.servicePrice * hh.area,
+        });
+      }
+    }
+
+    // Nếu không có household nào mới, trả về thông báo
+    if (recordsToCreate.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No new management/service fee records to add for this month. If you have added new households, please call this API again to add fees for them.",
+        totalCreated: 0,
+      });
+    }
+
+    const created = await FeeHousehold.bulkCreate(recordsToCreate);
+
+    return res.status(201).json({
+      success: true,
+      message: "Added management and service fees for active households. If you add more households later, call this API again to add fees for them.",
+      totalCreated: created.length,
+      data: created,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+const getAllManagementAndServiceFees = async (req, res) => {
+  const { month } = req.query;
+  if (!month) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required field: month',
+    });
+  }
+  try {
+    const managementFeeId = "0c740662-c6e9-473c-b68d-5d25f935a208";
+    const serviceFeeId = "1fb63de8-fb8c-496d-8721-ffbe614989ca";
+    const records = await FeeHousehold.findAll({
+      where: {
+        feeServiceId: {
+          [Op.in]: [managementFeeId, serviceFeeId]
+        },
+        month: month
+      },
+      include: [
+        {
+          model: FeeService,
+          attributes: ['serviceName', 'servicePrice', 'unit'],
+        }
+      ],
+    });
+    res.status(200).json({
+      success: true,
+      message: "Fetched all management and service fee records",
+      data: records
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -600,5 +747,7 @@ module.exports = {
   addFeeUtilityHouseholdPerMonth,
   getFeeUtilityHouseholdPerMonth,
   getHouseholdActive,
-  getHouseholdInuse
+  getHouseholdInuse,
+  autoAddManagementAndServiceFee,
+  getAllManagementAndServiceFees
 };
