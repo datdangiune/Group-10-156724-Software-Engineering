@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../database');
+
 const FeeHousehold = sequelize.define('FeeHousehold', {
     id: {
         type: DataTypes.UUID,

@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-sequelize.sync({ force: false}) // Set force: true to drop and recreate the database
+sequelize.sync({ alter: true}) // Set force: true to drop and recreate the database
     .then(() => {
         console.log('Database synced successfully.');
         app.listen(port, () => {
@@ -28,17 +28,4 @@ sequelize.sync({ force: false}) // Set force: true to drop and recreate the data
     })
     .catch((err) => {
         console.error('Error syncing database:', err);
-});
-cron.schedule('0 0 1 * *', () => {
-  console.log('Running monthly FeeHousehold generation job');
-  autoCreateFeeHouseholdForNewMonth(
-    {
-      body: {}, // giả req
-    },
-    {
-      status: (code) => ({
-        json: (data) => console.log(`Status ${code}`, data),
-      }),
-    }
-  );
 });

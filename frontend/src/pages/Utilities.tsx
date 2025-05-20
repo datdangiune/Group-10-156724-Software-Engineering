@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -28,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-
+import { useFeeUtility } from "@/hooks/useHouseholds";
 // Mock data for utility usage
 const mockUtilityUsage = [
   { id: 1, household: "A1201", month: "2025-05", electricity: 250, water: 25, internet: true, total: 1450000, status: "unpaid", paidAt: null },
@@ -47,16 +46,25 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+function getCurrentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 const Utilities = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [month, setMonth] = useState("2025-05"); // Default to current month
+  const [month, setMonth] = useState(getCurrentMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentUtility, setCurrentUtility] = useState<any>(null);
-  
-  const filteredUtilities = mockUtilityUsage.filter(utility => 
-    utility.household.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    utility.month === month
+
+  // Lấy dữ liệu tiện ích từ backend
+  const { data: utilityData, isLoading } = useFeeUtility(month);
+
+  const utilities = Array.isArray(utilityData) ? utilityData : [];
+
+  const filteredUtilities = utilities.filter(utility =>
+    utility.householdId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddEdit = (utility: any = null) => {
@@ -72,7 +80,7 @@ const Utilities = () => {
     setIsDialogOpen(false);
   };
 
-  const markAsPaid = (id: number) => {
+  const markAsPaid = (id: string) => {
     toast({
       title: "Đã đánh dấu đã thanh toán",
       description: "Khoản phí tiện ích đã được đánh dấu là đã thanh toán.",
@@ -129,20 +137,26 @@ const Utilities = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUtilities.map((utility) => (
-                <TableRow key={utility.id}>
-                  <TableCell className="font-medium">{utility.household}</TableCell>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-6">
+                    Đang tải dữ liệu...
+                  </TableCell>
+                </TableRow>
+              ) : filteredUtilities.map((utility) => (
+                <TableRow key={utility.householdId}>
+                  <TableCell className="font-medium">{utility.householdId}</TableCell>
                   <TableCell>{utility.electricity}</TableCell>
                   <TableCell>{utility.water}</TableCell>
                   <TableCell>{utility.internet ? "Có" : "Không"}</TableCell>
-                  <TableCell>{formatCurrency(utility.total)}</TableCell>
+                  <TableCell>{formatCurrency(utility.totalPrice)}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      utility.status === 'paid' 
+                      utility.statusPayment === 'paid' 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {utility.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                      {utility.statusPayment === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -156,8 +170,8 @@ const Utilities = () => {
                         <DropdownMenuItem onClick={() => handleAddEdit(utility)}>
                           Chỉnh sửa
                         </DropdownMenuItem>
-                        {utility.status === 'unpaid' && (
-                          <DropdownMenuItem onClick={() => markAsPaid(utility.id)}>
+                        {utility.statusPayment !== 'paid' && (
+                          <DropdownMenuItem onClick={() => markAsPaid(utility.householdId)}>
                             Đánh dấu đã thu
                           </DropdownMenuItem>
                         )}
@@ -166,7 +180,7 @@ const Utilities = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredUtilities.length === 0 && (
+              {!isLoading && filteredUtilities.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-6">
                     Không có dữ liệu
@@ -178,7 +192,7 @@ const Utilities = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredUtilities.length} trên tổng số {mockUtilityUsage.filter(u => u.month === month).length} hộ gia đình
+            Hiển thị {filteredUtilities.length} trên tổng số {utilities.length} hộ gia đình
           </div>
         </CardFooter>
       </Card>
@@ -200,7 +214,7 @@ const Utilities = () => {
               </Label>
               <Input
                 id="household"
-                defaultValue={currentUtility?.household || ""}
+                defaultValue={currentUtility?.householdId || ""}
                 className="col-span-3"
               />
             </div>

@@ -49,6 +49,19 @@ interface getHouseholdUnactiveResponse {
     message: string;
     data: Household_User[]
 }
+type Utility = {
+    householdId: string;
+    water: number;
+    electricity: number;
+    internet: boolean;
+    totalPrice: number;
+    statusPayment: string;
+}
+interface getFeeUtilityResponse {
+    success: boolean;
+    message: string;
+    data: Utility[];
+}
 export type PersonData = {
   email: string;
   fullname: string;
@@ -164,6 +177,27 @@ export async function addHouseholdAndUser(data: HouseholdData, accessToken: stri
         }
         return result;
     } catch (error) {  
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+        
+    }
+}
+export async function getFeeUtility(token: string, month: string): Promise<getFeeUtilityResponse> {
+    try {
+        const response = await axios.get(`${url}/admin/getFeeUtility?month=${month}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        })
+        const data: getFeeUtilityResponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }   
+        return data;
+    } catch (error) {
         if (axios.isAxiosError(error)) {
             throw new Error(error.response?.data.message || 'An error occurred');
         } else {

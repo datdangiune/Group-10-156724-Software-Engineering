@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getHousehold, getUserInHousehold, getFeeService, getHouseholdUnactive } from "@/service/admin_v1";
+import { getHousehold, getUserInHousehold, getFeeService, getHouseholdUnactive, getFeeUtility } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import Cookies from "js-cookie";
 import { useToast } from "@/hooks/use-toast";
@@ -119,6 +119,33 @@ export const useAdminInfo = () => {
         queryFn: async () => {
             try {
                 const response = await getAdminInfo(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu hộ gia đình.",
+                });
+            }
+        },
+        staleTime: staleTime, // 5 minutes
+        gcTime: gcTime, // 5 minutes
+    })
+}
+
+export const useFeeUtility = (month: string) => {
+    const {toast} = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['feeUtility', month],
+        queryFn: async () => {
+            try {
+                const response = await getFeeUtility(accessToken, month);
                 if (!response.success) {
                     toast({
                         title: "Lỗi",
