@@ -212,9 +212,9 @@ export async function getFeeUtility(token: string, month: string): Promise<getFe
         
     }
 }
-export async function getHouseholdActive(accessToken: string): Promise<getHouseholdUnactiveResponse> {
+export async function getHouseholdActive(accessToken: string, month: string): Promise<getHouseholdUnactiveResponse> {
     try {
-        const response = await axios.get(`${url}/admin/activeHousehold`, {
+        const response = await axios.get(`${url}/admin/activeHousehold?month=${month}`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             }

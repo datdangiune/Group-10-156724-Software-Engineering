@@ -165,14 +165,14 @@ export const useFeeUtility = (month: string) => {
     })
 }
 
-export const useHouseholdActive = () => {
+export const useHouseholdActive = (month) => {
     const {toast} = useToast();
     const accessToken = Cookies.get("accessToken");
     return useQuery({
-        queryKey: ['householdActive'],
+        queryKey: ['householdActive', month],
         queryFn: async () => {
             try {
-                const response = await getHouseholdActive(accessToken);
+                const response = await getHouseholdActive(accessToken, month);
                 if (!response.success) {
                     toast({
                         title: "Lỗi",

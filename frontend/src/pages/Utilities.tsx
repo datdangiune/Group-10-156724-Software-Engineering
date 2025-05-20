@@ -43,7 +43,7 @@ import { addFeeUtility } from "@/service/admin_v1";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useHouseholdActive } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
-import { log } from "console";
+import { useQueryClient } from "@tanstack/react-query";
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -77,8 +77,9 @@ const Utilities = () => {
   const [month, setMonth] = useState(getCurrentMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentUtility, setCurrentUtility] = useState<any>(null);
-  const { data: households } = useHouseholdActive();
+  const { data: households } = useHouseholdActive(month);
   console.log("Households data:", households);
+  const queryClient = useQueryClient();
   const accessToken = Cookies.get("accessToken");
   // Lấy dữ liệu tiện ích từ backend
   const { data: utilityData, isLoading } = useFeeUtility(month);
@@ -129,6 +130,14 @@ const Utilities = () => {
     };
     try {
       await addFeeUtility(utilityData, accessToken);
+      queryClient.invalidateQueries({queryKey: ['feeUtility', month]});
+      queryClient.invalidateQueries({queryKey: ['householdActive']});
+      toast({
+        title: currentUtility ? "Dữ liệu tiện ích đã được cập nhật" : "Dữ liệu tiện ích mới đã được thêm",
+        description: `Thao tác với tiện ích căn hộ ${data.householdId} thành công.`,
+      });
+    
+      setIsDialogOpen(false);
     } catch (error) {
       toast({
         title: "Lỗi",
@@ -137,12 +146,7 @@ const Utilities = () => {
       });
       return;
     }
-    toast({
-      title: currentUtility ? "Dữ liệu tiện ích đã được cập nhật" : "Dữ liệu tiện ích mới đã được thêm",
-      description: `Thao tác với tiện ích căn hộ ${data.householdId} thành công.`,
-    });
-    
-    setIsDialogOpen(false);
+
   };
 
   const markAsPaid = (id: string) => {

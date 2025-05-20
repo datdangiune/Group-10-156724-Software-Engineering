@@ -352,11 +352,28 @@ const getHouseholdUnactive = async (req, res) => {
   }
 }
 const getHouseholdActive = async (req, res) => {
+  const { month } = req.query;
+  if (!month) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required query param: month',
+    });
+  }
   try {
+    const usedHouseholds = await FeeHousehold.findAll({
+      attributes: ['householdId'],
+      where: { month },
+      group: ['householdId'],
+      raw: true,
+    });
+    const usedIds = usedHouseholds.map(item => item.householdId);
     const response = await Household.findAll({
       attributes: ['id', 'area'],
       where: {
-        isActive: true
+        isActive: true,
+        id: {
+          [Op.notIn]: usedIds.length ? usedIds : [''] // nếu rỗng thì phải truyền array dummy để không lỗi
+        }
       }
     });
     if (!response) {
