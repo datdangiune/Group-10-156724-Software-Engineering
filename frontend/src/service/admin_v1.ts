@@ -57,6 +57,12 @@ type Utility = {
     totalPrice: number;
     statusPayment: string;
 }
+type FeeUtility = {
+    householdId: string;
+    water: number;
+    electricity: number;
+    internet: boolean;
+}
 interface getFeeUtilityResponse {
     success: boolean;
     message: string;
@@ -198,6 +204,48 @@ export async function getFeeUtility(token: string, month: string): Promise<getFe
         }   
         return data;
     } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+        
+    }
+}
+export async function getHouseholdActive(accessToken: string): Promise<getHouseholdUnactiveResponse> {
+    try {
+        const response = await axios.get(`${url}/admin/activeHousehold`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: getHouseholdUnactiveResponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}
+export async function addFeeUtility(data: FeeUtility, accessToken: string) {
+    try {
+        const response = await axios.post(`${url}/admin/addFeeUtility`, data, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        const result = response.data;
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+        return result;
+    } catch (error) {  
         if (axios.isAxiosError(error)) {
             throw new Error(error.response?.data.message || 'An error occurred');
         } else {

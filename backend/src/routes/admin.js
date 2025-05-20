@@ -11,6 +11,7 @@ route.post('/addFeeService', verifyTokenAdmin, adminController.addFeeService)
 route.get('/feeService', verifyTokenAdmin, adminController.getFeeService)
 route.post('/addHouseholdAndUser', verifyTokenAdmin, adminController.addHouseholdAndUser)
 route.get('/getHouseholdUnactive', verifyTokenAdmin, adminController.getHouseholdUnactive)
+route.get('/activeHousehold', verifyTokenAdmin, adminController.getHouseholdActive)
 route.post('/addFeeUtility', verifyTokenAdmin, adminController.addFeeUtilityHouseholdPerMonth)
 route.get('/getFeeUtility', verifyTokenAdmin, adminController.getFeeUtilityHouseholdPerMonth)
 module.exports = route

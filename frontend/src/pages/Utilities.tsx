@@ -28,16 +28,22 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useFeeUtility } from "@/hooks/useHouseholds";
-// Mock data for utility usage
-const mockUtilityUsage = [
-  { id: 1, household: "A1201", month: "2025-05", electricity: 250, water: 25, internet: true, total: 1450000, status: "unpaid", paidAt: null },
-  { id: 2, household: "B0502", month: "2025-05", electricity: 132, water: 13, internet: true, total: 857000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-  { id: 3, household: "C1803", month: "2025-05", electricity: 320, water: 32, internet: false, total: 1520000, status: "paid", paidAt: "2025-05-08T09:20:00" },
-  { id: 4, household: "D0704", month: "2025-05", electricity: 180, water: 18, internet: true, total: 1030000, status: "unpaid", paidAt: null },
-  { id: 5, household: "A0601", month: "2025-05", electricity: 95, water: 10, internet: false, total: 532500, status: "paid", paidAt: "2025-05-07T11:45:00" },
-];
-
-// Format Vietnamese currency
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { addFeeUtility } from "@/service/admin_v1";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useHouseholdActive } from "@/hooks/useHouseholds";
+import Cookies from "js-cookie";
+import { log } from "console";
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -50,14 +56,30 @@ function getCurrentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
-
+const utilityFormSchema = z.object({
+  householdId: z.string({
+    required_error: "Vui lòng chọn căn hộ",
+  }),
+  water: z.number({
+    required_error: "Vui lòng nhập số nước",
+    invalid_type_error: "Phải là số",
+  }).min(0, "Không được âm"),
+  electricity: z.number({
+    required_error: "Vui lòng nhập số điện",
+    invalid_type_error: "Phải là số",
+  }).min(0, "Không được âm"),
+  internet: z.boolean().default(false),
+});
+type UtilityFormValues = z.infer<typeof utilityFormSchema>;
 const Utilities = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [month, setMonth] = useState(getCurrentMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentUtility, setCurrentUtility] = useState<any>(null);
-
+  const { data: households } = useHouseholdActive();
+  console.log("Households data:", households);
+  const accessToken = Cookies.get("accessToken");
   // Lấy dữ liệu tiện ích từ backend
   const { data: utilityData, isLoading } = useFeeUtility(month);
 
@@ -66,17 +88,60 @@ const Utilities = () => {
   const filteredUtilities = utilities.filter(utility =>
     utility.householdId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
+  const form = useForm<UtilityFormValues>({
+    resolver: zodResolver(utilityFormSchema),
+    defaultValues: {
+      householdId: "",
+      water: undefined,
+      electricity: undefined,
+      internet: false,
+    },
+  });
   const handleAddEdit = (utility: any = null) => {
-    setCurrentUtility(utility);
-    setIsDialogOpen(true);
+      setCurrentUtility(utility);
+      if (utility) {
+        // Edit mode - populate form with existing data
+        form.reset({
+          householdId: utility.household,
+          water: utility.water,
+          electricity: utility.electricity,
+          internet: utility.internet,
+        });
+      } else {
+        // Add mode - reset form
+        form.reset({
+          householdId: "",
+          water: undefined,
+          electricity: undefined,
+          internet: false,
+        });
+      }
+      setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const onSubmit = async (data: UtilityFormValues) => {
+    console.log("Form submitted:", data);
+    const utilityData = {
+      householdId: data.householdId,
+      water: data.water,
+      electricity: data.electricity,
+      internet: data.internet,
+    };
+    try {
+      await addFeeUtility(utilityData, accessToken);
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Bạn đã thêm dữ liệu tiện ích cho hộ gia đình này rồi",
+        onError: error,
+      });
+      return;
+    }
     toast({
       title: currentUtility ? "Dữ liệu tiện ích đã được cập nhật" : "Dữ liệu tiện ích mới đã được thêm",
-      description: `Thao tác với tiện ích căn hộ ${currentUtility?.household || 'mới'} thành công.`,
+      description: `Thao tác với tiện ích căn hộ ${data.householdId} thành công.`,
     });
+    
     setIsDialogOpen(false);
   };
 
@@ -198,7 +263,7 @@ const Utilities = () => {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
               {currentUtility ? "Sửa thông tin tiện ích" : "Thêm thông tin tiện ích mới"}
@@ -207,48 +272,113 @@ const Utilities = () => {
               {currentUtility ? "Cập nhật dữ liệu tiện ích" : "Nhập dữ liệu tiện ích mới"}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="household" className="text-right">
-                Căn hộ
-              </Label>
-              <Input
-                id="household"
-                defaultValue={currentUtility?.householdId || ""}
-                className="col-span-3"
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="householdId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Căn hộ</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn căn hộ" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {households.map((household, id) => (
+                          <SelectItem key={id} value={household.id}>
+                            {household.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="electricity" className="text-right">
-                Điện (kWh)
-              </Label>
-              <Input
-                id="electricity"
-                type="number"
-                defaultValue={currentUtility?.electricity || ""}
-                className="col-span-3"
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="electricity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Điện tiêu thụ (kWh)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Nhập số điện"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Số điện kỳ này</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="water"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nước tiêu thụ (m³)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Nhập số nước"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Số nước kỳ này</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="internet"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => field.onChange(checked)}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Sử dụng internet</FormLabel>
+                      <FormDescription>
+                        Đánh dấu nếu căn hộ sử dụng dịch vụ internet
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="water" className="text-right">
-                Nước (m³)
-              </Label>
-              <Input
-                id="water"
-                type="number"
-                defaultValue={currentUtility?.water || ""}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleSave}>Lưu</Button>
-          </DialogFooter>
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Hủy
+                </Button>
+                <Button type="submit">Lưu</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 };

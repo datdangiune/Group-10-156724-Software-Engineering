@@ -351,23 +351,52 @@ const getHouseholdUnactive = async (req, res) => {
     });
   }
 }
-const addFeeUtilityHouseholdPerMonth = async (req, res) => {
+const getHouseholdActive = async (req, res) => {
+  try {
+    const response = await Household.findAll({
+      attributes: ['id', 'area'],
+      where: {
+        isActive: true
+      }
+    });
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active household found'
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Get active household successfully',
+      data: response
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
+const addFeeUtilityHouseholdPerMonth = async (req, res) => { //Tạm thời fix cứng do UI
   const {
     householdId,
-    feeServiceWaterId,
-    feeServiceElectricId,
-    feeServiceInternetId,
+    // feeServiceWaterId,
+    // feeServiceElectricId,
+    // feeServiceInternetId,
     water,
     electricity,
     internet
   } = req.body;
-console.log(req.body);
+  const feeServiceWaterId = "22613ce3-314c-45fd-82bb-e9c29a9fde05";
+  const feeServiceElectricId  = "dfd15bda-e6f9-414a-a06d-54b6f591c328";
+  const feeServiceInternetId =  "0609e56a-5eaa-46f6-8ac5-ae54249924c8"
 
   if (
     !householdId ||
-    !feeServiceWaterId ||
-    !feeServiceElectricId ||
-    !feeServiceInternetId ||
+    // !feeServiceWaterId ||
+    // !feeServiceElectricId ||
+    // !feeServiceInternetId ||
     water == null ||
     electricity == null ||
     internet == null 
@@ -525,5 +554,6 @@ module.exports = {
   addHouseholdAndUser,
   getHouseholdUnactive,
   addFeeUtilityHouseholdPerMonth,
-  getFeeUtilityHouseholdPerMonth
+  getFeeUtilityHouseholdPerMonth,
+  getHouseholdActive
 };

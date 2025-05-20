@@ -12,6 +12,10 @@ import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Lock, Key } from "lucide-react";
 import { useAdminInfo } from "@/hooks/useHouseholds";
+import { updateAdminInfo } from "@/service/auth";
+import Cookies from "js-cookie";
+import { useQueryClient } from "@tanstack/react-query";
+
 // Schema for profile information validation
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -50,13 +54,13 @@ const Account = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const { data: adminInfo } = useAdminInfo();
-
+  const queryClient = useQueryClient();
   // Default form values lấy từ adminInfo nếu có
   const defaultProfileValues: Partial<ProfileFormValues> = {
     name: adminInfo?.fullname || "Quản Trị Viên",
     email: adminInfo?.email || user?.email || "admin@bluemoon.com",
     phone: adminInfo?.phoneNumber || "0912345678",
-    position: adminInfo.role ? adminInfo.role : "Quản Trị Viên",
+    position: adminInfo?.role ? adminInfo.role : "Quản Trị Viên",
   };
 
   // Profile form
@@ -79,22 +83,23 @@ const Account = () => {
   // Handle profile update
   const onProfileSubmit = async (data: ProfileFormValues) => {
     setIsUpdating(true);
-    
     try {
-      // Simulating API call to update profile
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Success message
+      const accessToken = Cookies.get("accessToken");
+      // Gọi API cập nhật thông tin admin
+      await updateAdminInfo(accessToken || "", {
+        fullname: data.name,
+        phoneNumber: data.phone,
+      });
       toast({
         title: "Cập nhật thông tin thành công",
         description: "Thông tin cá nhân của bạn đã được cập nhật.",
       });
-      
-    } catch (error) {
-      // Error message
+      queryClient.invalidateQueries({ queryKey: ["adminInfo"] });
+    } catch (error: any) {
+      console.log(error.message);
       toast({
         title: "Cập nhật thất bại",
-        description: "Có lỗi xảy ra khi cập nhật thông tin.",
+        description: error?.message || "Có lỗi xảy ra khi cập nhật thông tin.",
         variant: "destructive",
       });
     } finally {
