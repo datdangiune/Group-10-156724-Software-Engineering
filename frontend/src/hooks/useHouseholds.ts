@@ -169,7 +169,7 @@ export const useHouseholdActive = () => {
     const {toast} = useToast();
     const accessToken = Cookies.get("accessToken");
     return useQuery({
-        queryKey: ['householdUnactive'],
+        queryKey: ['householdActive'],
         queryFn: async () => {
             try {
                 const response = await getHouseholdActive(accessToken);
