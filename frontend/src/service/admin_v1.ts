@@ -336,6 +336,7 @@ export async function getAllFee(accessToken: string, month: string): Promise<get
 //News
 
 type Fees = {
+    id: string,
     amount: number;
     status: string;
     paymentDate: Date;
@@ -372,6 +373,32 @@ export async function getAllFeeOfHousehold(accessToken: string, month: string): 
             throw new Error(data.message);
         }
         return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}
+interface updatePaymentResponse {
+    success: boolean,
+    message: string
+}
+export async function updatePayment(accessToken: string, id: string): Promise<updatePaymentResponse>{
+    try {
+        const response = await axios.put(`${url}/admin/updatePayment`, {
+            id
+        }, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: updatePaymentResponse = response.data
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data
     } catch (error) {
         if (axios.isAxiosError(error)) {
             throw new Error(error.response?.data.message || 'An error occurred');

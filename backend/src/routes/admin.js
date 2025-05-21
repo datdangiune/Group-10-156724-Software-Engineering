@@ -21,4 +21,5 @@ route.get('/getAll', verifyTokenAdmin, adminController.getAllManagementAndServic
 route.post('/addVehicle', verifyTokenAdmin, adminController_v2.addVehicle)
 route.get('/getVehicle', verifyTokenAdmin, adminController_v2.getVehicle)
 route.get('/allHouseholdPerMonth', verifyTokenAdmin, adminController.getHouseholdFeePerMonth)
+route.put('/updatePayment', verifyTokenAdmin, adminController.updatePayment)
 module.exports = route

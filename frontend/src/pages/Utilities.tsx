@@ -132,6 +132,8 @@ const Utilities = () => {
       await addFeeUtility(utilityData, accessToken);
       queryClient.invalidateQueries({queryKey: ['feeUtility', month]});
       queryClient.invalidateQueries({queryKey: ['householdActive']});
+      queryClient.invalidateQueries({queryKey: ['getAllFeeOfHousehold', month]});
+      queryClient.invalidateQueries({queryKey: ['getAllFeeService', month]});
       toast({
         title: currentUtility ? "Dữ liệu tiện ích đã được cập nhật" : "Dữ liệu tiện ích mới đã được thêm",
         description: `Thao tác với tiện ích căn hộ ${data.householdId} thành công.`,
@@ -149,12 +151,6 @@ const Utilities = () => {
 
   };
 
-  const markAsPaid = (id: string) => {
-    toast({
-      title: "Đã đánh dấu đã thanh toán",
-      description: "Khoản phí tiện ích đã được đánh dấu là đã thanh toán.",
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -275,12 +271,19 @@ const Utilities = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {households.map((household, id) => (
-                          <SelectItem key={id} value={household.id}>
-                            {household.id}
-                          </SelectItem>
-                        ))}
+                        {households.length === 0 ? (
+                          <div className="px-4 py-2 text-muted-foreground">
+                            Bạn đã thêm hết các căn hộ rồi
+                          </div>
+                        ) : (
+                          households.map((household, id) => (
+                            <SelectItem key={id} value={household.id}>
+                              {household.id}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
+
                     </Select>
                     <FormMessage />
                   </FormItem>

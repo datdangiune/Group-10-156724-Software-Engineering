@@ -22,8 +22,9 @@ import { Search, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useGetAllFeeOfHousehold } from "@/hooks/useHouseholds";
-
-
+import { updatePayment } from "@/service/admin_v1";
+import { useQueryClient } from "@tanstack/react-query";
+import Cookies from "js-cookie";
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -35,6 +36,9 @@ const formatCurrency = (value: number) => {
 
 const ApartmentFees = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const token =  Cookies.get('accessToken')
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("");
   const [month, setMonth] = useState("2025-05"); // Default to current month
   const [selectedApartment, setSelectedApartment] = useState<string | null>(null);
@@ -52,25 +56,31 @@ const ApartmentFees = () => {
     setIsDialogOpen(true);
   };
 
-  const handleStatusChange = (feeId: string) => {
-    if (!selectedApartment) return;
-    
-    const household = dataHouseholds.find(h => h.householdId === selectedApartment);
-
-    const fee = household?.fees.find(f => f.feeServiceId === feeId);
-
-
-    
-    if (fee) {
-      const status = fee.status === 'paid' ? 'unpaid' : 'paid';
-      toast({
-        title: status === 'paid' ? "Đã đánh dấu đã thanh toán" : "Đã đánh dấu chưa thanh toán",
-        description: `Khoản phí ${fee.serviceName} đã được cập nhật.`,
-      });
-      
-      // In a real application, you would update the status in the database
-      fee.status = status;
-      fee.status = status === 'paid' ? new Date().toISOString() : null;
+  const handleStatusChange = async (feeId: string) => {
+    try {
+      setLoading(true)
+      const response = await updatePayment(token, feeId);
+        if(!response.success){
+          toast({
+            title: "Cập nhật không thành công",
+            description: "Có lỗi xảy ra"
+          })
+        }
+        queryClient.invalidateQueries({queryKey: ['getAllFeeOfHousehold', month]})
+        queryClient.invalidateQueries({queryKey: ['getAllFeeService', month]})
+        queryClient.invalidateQueries({queryKey: ['feeUtility', month]})
+        queryClient.invalidateQueries({queryKey: ['feeService']})
+        toast({
+            title: "Cập nhật thành công",
+            description: "Dữ liệu đã được cập nhật"
+        })
+    } catch (error) {
+        toast({
+            title: "Cập nhật thành công",
+            description: error
+        })
+    } finally {
+      setLoading(false)
     }
   };
   
@@ -197,29 +207,31 @@ const ApartmentFees = () => {
                         </span>
                       </TableCell>
                       <TableCell>
-                        {fee.status
-                          ? new Date(fee.status).toLocaleString('vi-VN') 
+                        {fee.paymentDate
+                          ? new Date(fee.paymentDate).toLocaleString('vi-VN') 
                           : '-'}
                       </TableCell>
                       <TableCell>
-                        {fee.status === 'unpaid' ? (
+                        {fee.status === 'pending' ? (
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleStatusChange(fee.feeServiceId)}
+                            onClick={() => handleStatusChange(fee.id)}
+                            disabled={loading}
                           >
-                            Đánh dấu đã thu
+                            {loading  ? 'Đang xử lý...' : 'Đánh dấu đã thu'}
                           </Button>
                         ) : (
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => handleStatusChange(fee.feeServiceId)}
+                            disabled
                           >
-                            Đánh dấu chưa thu
+                            Thu thành công
                           </Button>
                         )}
                       </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
