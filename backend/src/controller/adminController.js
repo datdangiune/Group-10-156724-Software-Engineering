@@ -734,6 +734,94 @@ const getAllManagementAndServiceFees = async (req, res) => {
     });
   }
 };
+const getHouseholdFeePerMonth = async (req, res) => {
+  const { month } = req.query;
+  if (!month) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required field: month',
+    });
+  }
+  try {
+    const households = await Household.findAll({
+      attributes: ['id', 'area'],
+      where: {
+        isActive: true
+      },
+      include: [
+        {
+          model: FeeHousehold,
+          where: { month: month },
+          attributes: ['amount', 'status', 'paymentDate', 'feeServiceId'],
+          include: [
+            {
+              model: FeeService,
+              attributes: ['serviceName', 'servicePrice', 'unit'],
+            }
+          ]
+        },
+        {
+          model: UserHousehold,
+          where: { isOwner: true },
+          attributes: ['roleInFamily', 'isOwner'],
+          include: [
+            {
+              model: User,
+              attributes: ['fullname'],
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!households) {
+      return res.status(404).json({
+        success: false,
+        message: 'No household found'
+      });
+    }
+
+    // Custom data: add totalPrice for each household
+    const result = households.map(hh => {
+      const fees = hh.FeeHouseholds || [];
+      const totalPrice = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+      const owner = hh.UserHouseholds && hh.UserHouseholds[0] && hh.UserHouseholds[0].User;
+      const ownerName = owner ? owner.fullname : null;
+      return {
+        householdId: hh.id,
+        area: hh.area,
+        totalPrice,
+        fees: fees.map(fee => ({
+          amount: fee.amount,
+          status: fee.status,
+          paymentDate: fee.paymentDate,
+          feeServiceId: fee.feeServiceId,
+          serviceName: fee.FeeService?.serviceName,
+          servicePrice: fee.FeeService?.servicePrice,
+          unit: fee.FeeService?.unit,
+
+        })),
+        owner: {
+          roleInFamily: hh.UserHouseholds && hh.UserHouseholds[0] ? hh.UserHouseholds[0].roleInFamily : null,
+          isOwner: hh.UserHouseholds && hh.UserHouseholds[0] ? hh.UserHouseholds[0].isOwner : null,
+          fullname: ownerName
+        }
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Get household fee per month successfully',
+      data: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -749,5 +837,6 @@ module.exports = {
   getHouseholdActive,
   getHouseholdInuse,
   autoAddManagementAndServiceFee,
-  getAllManagementAndServiceFees
+  getAllManagementAndServiceFees,
+  getHouseholdFeePerMonth
 };

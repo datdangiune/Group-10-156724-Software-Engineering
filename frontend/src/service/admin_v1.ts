@@ -331,3 +331,52 @@ export async function getAllFee(accessToken: string, month: string): Promise<get
         }
     }
 }
+
+
+//News
+
+type Fees = {
+    amount: number;
+    status: string;
+    paymentDate: Date;
+    feeServiceId: string;
+    serviceName: string;
+    servicePrice: number;
+    unit: string;
+}
+type Owner = {
+    roleInFamily: string;
+    isOwner: boolean;
+    fullname: string;
+}
+interface getAllFeeOfHouseholdResponse {
+    success: boolean;
+    message: string;
+    data: {
+        householdId: string;
+        area: string;
+        totalPrice: number;
+        fees: Fees[];
+        owner: Owner;
+    }[]
+}
+export async function getAllFeeOfHousehold(accessToken: string, month: string): Promise<getAllFeeOfHouseholdResponse> {
+    try {
+        const response = await axios.get(`${url}/admin/allHouseholdPerMonth?month=${month}`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: getAllFeeOfHouseholdResponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}

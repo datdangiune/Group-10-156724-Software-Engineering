@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getHousehold, getUserInHousehold, getAllFee,getFeeService, getHouseholdInuse,getHouseholdUnactive, getFeeUtility, getHouseholdActive } from "@/service/admin_v1";
+import { getHousehold, getUserInHousehold, getAllFee,getFeeService, getHouseholdInuse,getHouseholdUnactive, getFeeUtility, getHouseholdActive, getAllFeeOfHousehold} from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
 import Cookies from "js-cookie";
@@ -265,6 +265,32 @@ export const useGetAll = (month: string) => {
                 toast({
                     title: "Lỗi",
                     description: "Không thể tải dữ liệu hộ gia đình.",
+                });
+            }
+        },
+        staleTime: staleTime, // 5 minutes
+        gcTime: gcTime, // 5 minutes
+    })
+}
+export const useGetAllFeeOfHousehold = (month: string) => {
+    const {toast} = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['getAllFeeOfHousehold', month],
+        queryFn: async () => {
+            try {
+                const response = await getAllFeeOfHousehold(accessToken, month);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu.",
                 });
             }
         },

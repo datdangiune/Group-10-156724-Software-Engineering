@@ -21,54 +21,8 @@ import {
 import { Search, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useGetAllFeeOfHousehold } from "@/hooks/useHouseholds";
 
-// Mock data for apartments
-const mockApartments = [
-  { id: 1, number: "A1201", owner: "Nguyễn Văn An", area: 120, totalFees: 3790000 },
-  { id: 2, number: "B0502", owner: "Trần Thị Mai", area: 60, totalFees: 2057000 },
-  { id: 3, number: "C1803", owner: "Lê Minh Tuấn", area: 90, totalFees: 2980000 },
-  { id: 4, number: "D0704", owner: "Phạm Hoàng Linh", area: 75, totalFees: 2450000 },
-  { id: 5, number: "A0601", owner: "Vũ Thị Hương", area: 45, totalFees: 1620000 },
-];
-
-// Mock data for detailed fees per apartment
-const mockDetailedFees = {
-  1: [
-    { id: 101, name: "Phí quản lý", amount: 1440000, status: "paid", paidAt: "2025-05-05T10:30:00" },
-    { id: 102, name: "Phí dịch vụ", amount: 960000, status: "paid", paidAt: "2025-05-05T10:30:00" },
-    { id: 103, name: "Phí gửi xe máy", amount: 140000, status: "paid", paidAt: "2025-05-05T10:30:00" },
-    { id: 104, name: "Phí điện", amount: 875000, status: "unpaid", paidAt: null },
-    { id: 105, name: "Phí nước", amount: 375000, status: "unpaid", paidAt: null },
-  ],
-  2: [
-    { id: 201, name: "Phí quản lý", amount: 720000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-    { id: 202, name: "Phí dịch vụ", amount: 480000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-    { id: 203, name: "Phí điện", amount: 462000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-    { id: 204, name: "Phí nước", amount: 195000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-    { id: 205, name: "Phí Internet", amount: 200000, status: "paid", paidAt: "2025-05-10T14:15:00" },
-  ],
-  3: [
-    { id: 301, name: "Phí quản lý", amount: 1080000, status: "paid", paidAt: "2025-05-08T09:20:00" },
-    { id: 302, name: "Phí dịch vụ", amount: 720000, status: "paid", paidAt: "2025-05-08T09:20:00" },
-    { id: 303, name: "Phí gửi xe máy", amount: 210000, status: "paid", paidAt: "2025-05-08T09:20:00" },
-    { id: 304, name: "Phí điện", amount: 570000, status: "unpaid", paidAt: null },
-    { id: 305, name: "Phí nước", amount: 400000, status: "unpaid", paidAt: null },
-  ],
-  4: [
-    { id: 401, name: "Phí quản lý", amount: 900000, status: "unpaid", paidAt: null },
-    { id: 402, name: "Phí dịch vụ", amount: 600000, status: "unpaid", paidAt: null },
-    { id: 403, name: "Phí gửi xe máy", amount: 140000, status: "paid", paidAt: "2025-05-15T16:45:00" },
-    { id: 404, name: "Phí điện", amount: 510000, status: "paid", paidAt: "2025-05-15T16:45:00" },
-    { id: 405, name: "Phí nước", amount: 300000, status: "paid", paidAt: "2025-05-15T16:45:00" },
-  ],
-  5: [
-    { id: 501, name: "Phí quản lý", amount: 540000, status: "paid", paidAt: "2025-05-12T11:10:00" },
-    { id: 502, name: "Phí dịch vụ", amount: 360000, status: "paid", paidAt: "2025-05-12T11:10:00" },
-    { id: 503, name: "Phí điện", amount: 420000, status: "paid", paidAt: "2025-05-12T11:10:00" },
-    { id: 504, name: "Phí nước", amount: 200000, status: "paid", paidAt: "2025-05-12T11:10:00" },
-    { id: 505, name: "Phí Internet", amount: 100000, status: "unpaid", paidAt: null },
-  ]
-};
 
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
@@ -83,35 +37,40 @@ const ApartmentFees = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [month, setMonth] = useState("2025-05"); // Default to current month
-  const [selectedApartment, setSelectedApartment] = useState<number | null>(null);
+  const [selectedApartment, setSelectedApartment] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
-  const filteredApartments = mockApartments.filter(apartment => 
-    apartment.number.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    apartment.owner.toLowerCase().includes(searchTerm.toLowerCase())
+  const { data: dataHousehold} = useGetAllFeeOfHousehold(month);
+  const dataHouseholds = Array.isArray(dataHousehold) ? dataHousehold : [];
+  console.log(dataHouseholds)
+  const filteredApartments = dataHouseholds.filter(apartment => 
+    apartment.householdId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    apartment.owner?.fullname?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleApartmentClick = (apartmentId: number) => {
+  const handleApartmentClick = (apartmentId: string) => {
     setSelectedApartment(apartmentId);
     setIsDialogOpen(true);
   };
 
-  const handleStatusChange = (feeId: number) => {
+  const handleStatusChange = (feeId: string) => {
     if (!selectedApartment) return;
     
-    const fees = mockDetailedFees[selectedApartment as keyof typeof mockDetailedFees];
-    const fee = fees.find(fee => fee.id === feeId);
+    const household = dataHouseholds.find(h => h.householdId === selectedApartment);
+
+    const fee = household?.fees.find(f => f.feeServiceId === feeId);
+
+
     
     if (fee) {
       const status = fee.status === 'paid' ? 'unpaid' : 'paid';
       toast({
         title: status === 'paid' ? "Đã đánh dấu đã thanh toán" : "Đã đánh dấu chưa thanh toán",
-        description: `Khoản phí ${fee.name} đã được cập nhật.`,
+        description: `Khoản phí ${fee.serviceName} đã được cập nhật.`,
       });
       
       // In a real application, you would update the status in the database
       fee.status = status;
-      fee.paidAt = status === 'paid' ? new Date().toISOString() : null;
+      fee.status = status === 'paid' ? new Date().toISOString() : null;
     }
   };
   
@@ -130,7 +89,7 @@ const ApartmentFees = () => {
         <CardHeader>
           <CardTitle>Danh sách căn hộ</CardTitle>
           <CardDescription>
-            Tổng cộng có {mockApartments.length} căn hộ với các khoản phí tháng {month}.
+            Tổng cộng có {dataHouseholds.length} căn hộ với các khoản phí tháng {month}.
           </CardDescription>
           <div className="flex flex-wrap gap-4 pt-2">
             <div className="flex items-center gap-2">
@@ -167,16 +126,16 @@ const ApartmentFees = () => {
             </TableHeader>
             <TableBody>
               {filteredApartments.map((apartment) => (
-                <TableRow key={apartment.id} className="cursor-pointer hover:bg-muted/60">
-                  <TableCell className="font-medium">{apartment.number}</TableCell>
-                  <TableCell>{apartment.owner}</TableCell>
+                <TableRow key={apartment.householdId} className="cursor-pointer hover:bg-muted/60">
+                  <TableCell className="font-medium">{apartment.householdId}</TableCell>
+                  <TableCell>{apartment.owner?.fullname}</TableCell>
                   <TableCell>{apartment.area}</TableCell>
-                  <TableCell>{formatCurrency(apartment.totalFees)}</TableCell>
+                  <TableCell>{formatCurrency(apartment.totalPrice)}</TableCell>
                   <TableCell>
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleApartmentClick(apartment.id)}
+                      onClick={() => {handleApartmentClick(apartment.householdId); console.log(apartment.householdId)}}
                     >
                       <ChevronDown className="h-4 w-4 mr-2" />
                       Xem chi tiết
@@ -196,7 +155,7 @@ const ApartmentFees = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredApartments.length} trên tổng số {mockApartments.length} căn hộ
+            Hiển thị {filteredApartments.length} trên tổng số {dataHouseholds.length} căn hộ
           </div>
         </CardFooter>
       </Card>
@@ -206,10 +165,10 @@ const ApartmentFees = () => {
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>
-                Chi tiết phí tháng {month} - Căn hộ {mockApartments.find(a => a.id === selectedApartment)?.number}
+                Chi tiết phí tháng {month} - Căn hộ {dataHouseholds.find(a => a.householdId === selectedApartment)?.householdId}
               </DialogTitle>
               <DialogDescription>
-                Chủ sở hữu: {mockApartments.find(a => a.id === selectedApartment)?.owner}
+                Chủ sở hữu: {dataHouseholds.find(a => a.householdId === selectedApartment)?.owner?.fullname}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -224,9 +183,9 @@ const ApartmentFees = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockDetailedFees[selectedApartment as keyof typeof mockDetailedFees].map((fee) => (
-                    <TableRow key={fee.id}>
-                      <TableCell className="font-medium">{fee.name}</TableCell>
+                  {dataHouseholds.find((h) => h.householdId === selectedApartment)?.fees?.map((fee) => (
+                    <TableRow key={fee.feeServiceId}>
+                      <TableCell className="font-medium">{fee.serviceName}</TableCell>
                       <TableCell>{formatCurrency(fee.amount)}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
@@ -238,8 +197,8 @@ const ApartmentFees = () => {
                         </span>
                       </TableCell>
                       <TableCell>
-                        {fee.paidAt 
-                          ? new Date(fee.paidAt).toLocaleString('vi-VN') 
+                        {fee.status
+                          ? new Date(fee.status).toLocaleString('vi-VN') 
                           : '-'}
                       </TableCell>
                       <TableCell>
@@ -247,7 +206,7 @@ const ApartmentFees = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleStatusChange(fee.id)}
+                            onClick={() => handleStatusChange(fee.feeServiceId)}
                           >
                             Đánh dấu đã thu
                           </Button>
@@ -255,7 +214,7 @@ const ApartmentFees = () => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => handleStatusChange(fee.id)}
+                            onClick={() => handleStatusChange(fee.feeServiceId)}
                           >
                             Đánh dấu chưa thu
                           </Button>
@@ -267,9 +226,12 @@ const ApartmentFees = () => {
               </Table>
               <div className="mt-4 text-right font-medium">
                 Tổng cộng: {formatCurrency(
-                  mockDetailedFees[selectedApartment as keyof typeof mockDetailedFees]
-                    .reduce((sum, fee) => sum + fee.amount, 0)
+                  dataHouseholds
+                    .find(h => h.householdId === selectedApartment)
+                    ?.fees
+                    ?.reduce((sum, fee) => sum + fee.amount, 0) || 0
                 )}
+
               </div>
             </div>
           </DialogContent>
