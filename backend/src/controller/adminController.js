@@ -409,9 +409,9 @@ const addFeeUtilityHouseholdPerMonth = async (req, res) => { //Tạm thời fix 
     electricity,
     internet
   } = req.body;
-  const feeServiceWaterId = "22613ce3-314c-45fd-82bb-e9c29a9fde05";
-  const feeServiceElectricId  = "dfd15bda-e6f9-414a-a06d-54b6f591c328";
-  const feeServiceInternetId =  "0609e56a-5eaa-46f6-8ac5-ae54249924c8"
+  const feeServiceWaterId = "cf4aa82a-3fb1-42a7-a610-cebd57696424";
+  const feeServiceElectricId  = "cf68679f-a97f-4d57-a505-64ffd165ee35";
+  const feeServiceInternetId =  "a578e224-899b-4646-a1bb-18300ce85cd5"
 
   if (
     !householdId ||
@@ -623,8 +623,8 @@ const autoAddManagementAndServiceFee = async (req, res) => {
     });
 
     // Lấy thông tin phí quản lý và phí dịch vụ
-    const managementFeeId = "0c740662-c6e9-473c-b68d-5d25f935a208";
-    const serviceFeeId = "1fb63de8-fb8c-496d-8721-ffbe614989ca";
+    const managementFeeId = "d27e902c-977f-48dc-8982-fd9d5dd24e9b";
+    const serviceFeeId = "a709f2dc-0534-4a41-8300-6b88b6cbc953";
     const [managementFee, serviceFee] = await Promise.all([
       FeeService.findByPk(managementFeeId),
       FeeService.findByPk(serviceFeeId),
@@ -705,8 +705,8 @@ const getAllManagementAndServiceFees = async (req, res) => {
     });
   }
   try {
-    const managementFeeId = "0c740662-c6e9-473c-b68d-5d25f935a208";
-    const serviceFeeId = "1fb63de8-fb8c-496d-8721-ffbe614989ca";
+    const managementFeeId = "d27e902c-977f-48dc-8982-fd9d5dd24e9b";
+    const serviceFeeId = "a709f2dc-0534-4a41-8300-6b88b6cbc953";
     const records = await FeeHousehold.findAll({
       where: {
         feeServiceId: {

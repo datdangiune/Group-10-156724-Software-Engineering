@@ -31,9 +31,9 @@ const addVehicle = async (req, res) => {
 
         let feeServiceId = null;
         if (vehicleType === "Xe máy") {
-            feeServiceId = "0f4afa3e-010b-49fa-a09a-fe3e843150b3";
+            feeServiceId = "e3b0486d-394e-46a7-9d26-31ea0cd2431f";
         } else if (vehicleType === "Ô tô") {
-            feeServiceId = "cc8acc39-0870-4896-816d-21bbe928baa3";
+            feeServiceId = "971f6415-25bd-4194-ab98-b9c689fb95ae";
         }
         let pricePerMonth = 0;
         if (feeServiceId) {

@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-sequelize.sync({ alter: true}) // Set force: true to drop and recreate the database
+sequelize.sync({force: false}) // Set force: true to drop and recreate the database
     .then(() => {
         console.log('Database synced successfully.');
         app.listen(port, () => {
