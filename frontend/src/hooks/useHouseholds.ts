@@ -11,7 +11,8 @@ import {
     getAllFeeOfHousehold,
     getFeeCollectionData, 
     getFeeTypeDistribution, 
-    getActiveCampaigns 
+    getActiveCampaigns,
+    getContribution
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
@@ -374,6 +375,32 @@ export const useActiveCampaigns = () => {
         queryFn: async () => {
             try {
                 const response = await getActiveCampaigns(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu chiến dịch quyên góp.",
+                });
+            }
+        },
+        staleTime,
+        gcTime,
+    });
+}
+export const useContribution = () => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['contribution'],
+        queryFn: async () => {
+            try {
+                const response = await getContribution(accessToken);
                 if (!response.success) {
                     toast({
                         title: "Lỗi",

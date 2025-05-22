@@ -1063,7 +1063,28 @@ const getActiveCampaigns = async (req, res) => {
     });
   }
 }
-
+const getContribution = async (req, res) => {
+  try {
+    const response = await Contribution.findAll();
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No contribution found'
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Get contribution successfully',
+      data: response
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1084,5 +1105,7 @@ module.exports = {
   updatePayment,
   getFeeCollectionData,
   getFeeTypeDistribution,
-  getActiveCampaigns
+  getActiveCampaigns,
+  addContribution,
+  getContribution,
 };

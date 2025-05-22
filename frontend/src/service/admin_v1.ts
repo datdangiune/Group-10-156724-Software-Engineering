@@ -494,3 +494,62 @@ export async function updatePayment(accessToken: string, id: string): Promise<up
         }
     }
 }
+
+export type Contribution = {
+    id: string;
+    name: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    goal: number;
+    donate: number;
+    status: string;
+}
+interface getContributionResponse {
+    success: boolean;
+    message: string;
+    data: Contribution[];
+}
+export async function getContribution(accessToken: string): Promise<getContributionResponse> {
+    try {
+        const response = await axios.get(`${url}/admin/getContribution`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: getContributionResponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}
+export async function addContribution(data: Contribution, accessToken: string): Promise<getContributionResponse> {
+    try {
+        const response = await axios.post(`${url}/admin/addContribution`, data, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        const result = response.data;
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+        return result;
+    } catch (error) {  
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+        
+    }
+    
+}

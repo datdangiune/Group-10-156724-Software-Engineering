@@ -98,10 +98,6 @@ const FeeTypes = () => {
               Quản lý các loại phí trong tòa nhà
             </CardDescription>
           </div>
-          <Button onClick={() => handleAddEdit()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm loại phí
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 mb-4">

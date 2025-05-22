@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -28,51 +27,10 @@ import {
 import { Search, MoreHorizontal, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data for campaigns
-const mockCampaigns = [
-  { 
-    id: 1, 
-    name: "Quyên góp từ thiện mùa hè", 
-    description: "Giúp đỡ người vô gia cư trong khu vực tòa nhà", 
-    startDate: "2025-05-01", 
-    endDate: "2025-08-15", 
-    target: 50000000,
-    collected: 15500000,
-    status: "active" 
-  },
-  { 
-    id: 2, 
-    name: "Hỗ trợ trẻ em vùng cao", 
-    description: "Mua sách vở và đồ dùng học tập cho trẻ em vùng cao", 
-    startDate: "2025-05-15", 
-    endDate: "2025-09-30", 
-    target: 40000000,
-    collected: 32000000,
-    status: "active" 
-  },
-  { 
-    id: 3, 
-    name: "Phát triển cơ sở vật chất", 
-    description: "Nâng cấp khu vui chơi cho trẻ em trong tòa nhà", 
-    startDate: "2025-04-01", 
-    endDate: "2025-07-20", 
-    target: 70000000,
-    collected: 45000000,
-    status: "active" 
-  },
-  { 
-    id: 4, 
-    name: "Hỗ trợ người già neo đơn", 
-    description: "Quyên góp cho người già neo đơn trong khu vực", 
-    startDate: "2025-01-01", 
-    endDate: "2025-04-01", 
-    target: 30000000,
-    collected: 30000000,
-    status: "completed" 
-  },
-];
-
+import { useContribution } from "@/hooks/useHouseholds";
+import { Contribution, addContribution } from "@/service/admin_v1";
+import Cookies from "js-cookie";
+import { useQueryClient } from "@tanstack/react-query";
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -84,29 +42,84 @@ const formatCurrency = (value: number) => {
 
 const Campaigns = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentCampaign, setCurrentCampaign] = useState<any>(null);
-  
-  const filteredCampaigns = mockCampaigns.filter(campaign => 
-    campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    campaign.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const [currentCampaign, setCurrentCampaign] = useState<Contribution | null>(null);
+  const [formCampaign, setFormCampaign] = useState<Partial<Contribution>>({
+    name: "",
+    description: "",
+    startDate: "",
+    endDate: "",
+    goal: 0,
+    donate: 0,
+    status: "Đang diễn ra"
+  });
+  const { data: mockCampaigns } = useContribution();
+  const mockCampaign = Array.isArray(mockCampaigns) ? mockCampaigns : [];
+  const filteredCampaigns = mockCampaign.filter(campaign => 
+    campaign.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    campaign.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleAddEdit = (campaign: any = null) => {
+  const accessToken = Cookies.get("accessToken");
+  const handleAddEdit = (campaign: Contribution | null) => {
     setCurrentCampaign(campaign);
+    if (campaign) {
+      setFormCampaign({
+        ...campaign,
+        startDate: campaign.startDate ? new Date(campaign.startDate).toISOString().slice(0, 10) : "",
+        endDate: campaign.endDate ? new Date(campaign.endDate).toISOString().slice(0, 10) : "",
+      });
+    } else {
+      setFormCampaign({
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        goal: 0,
+        donate: 0,
+        status: "Đang diễn ra"
+      });
+    }
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    toast({
-      title: currentCampaign ? "Chiến dịch đã được cập nhật" : "Chiến dịch mới đã được thêm",
-      description: `Thao tác với chiến dịch ${currentCampaign?.name || 'mới'} thành công.`,
-    });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormCampaign(prev => ({
+      ...prev,
+      [id]: id === "goal" ? Number(value) : value
+    }));
+  };
+
+  const handleSave = async () => {
+    try {
+      // Chỉ lấy các trường cần thiết
+      const dataToSend: Contribution = {
+        ...formCampaign,
+        goal: Number(formCampaign.goal) || 0,
+        donate: Number(formCampaign.donate) || 0,
+        status: formCampaign.status || "Đang diễn ra"
+      } as Contribution;
+      const response = await addContribution(dataToSend, accessToken);
+      if (response.success) {
+        toast({
+          title: "Chiến dịch đã được lưu",
+          description: "Dữ liệu chiến dịch đã được lưu thành công.",
+        });
+        queryClient.invalidateQueries({ queryKey: ["contribution"] });
+      }
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Có lỗi xảy ra khi lưu chiến dịch.",
+        variant: "destructive",
+      });
+    }
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     toast({
       title: "Chiến dịch đã được xóa",
       description: "Dữ liệu chiến dịch đã được xóa thành công.",
@@ -123,7 +136,7 @@ const Campaigns = () => {
               Quản lý các chiến dịch quyên góp của cộng đồng
             </CardDescription>
           </div>
-          <Button onClick={() => handleAddEdit()}>
+          <Button onClick={() => handleAddEdit(null)}>
             <Plus className="mr-2 h-4 w-4" />
             Thêm chiến dịch
           </Button>
@@ -158,13 +171,13 @@ const Campaigns = () => {
                   <TableCell>
                     {new Date(campaign.startDate).toLocaleDateString('vi-VN')} - {new Date(campaign.endDate).toLocaleDateString('vi-VN')}
                   </TableCell>
-                  <TableCell>{formatCurrency(campaign.target)}</TableCell>
+                  <TableCell>{formatCurrency(campaign.goal)}</TableCell>
                   <TableCell>
-                    {formatCurrency(campaign.collected)}
+                    {formatCurrency(campaign.donate)}
                     <div className="w-full bg-muted rounded-full h-1.5 mt-1">
                       <div
                         className="bg-primary h-1.5 rounded-full"
-                        style={{ width: `${Math.min(100, Math.round((campaign.collected / campaign.target) * 100))}%` }}
+                        style={{ width: `${Math.min(100, Math.round((campaign.donate / campaign.goal) * 100))}%` }}
                       ></div>
                     </div>
                   </TableCell>
@@ -208,7 +221,7 @@ const Campaigns = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Hiển thị {filteredCampaigns.length} trên tổng số {mockCampaigns.length} chiến dịch
+            Hiển thị {filteredCampaigns?.length} trên tổng số {mockCampaigns?.length} chiến dịch
           </div>
         </CardFooter>
       </Card>
@@ -228,7 +241,8 @@ const Campaigns = () => {
               </Label>
               <Input
                 id="name"
-                defaultValue={currentCampaign?.name || ""}
+                value={formCampaign.name || ""}
+                onChange={handleInputChange}
                 className="col-span-3"
               />
             </div>
@@ -238,7 +252,8 @@ const Campaigns = () => {
               </Label>
               <Input
                 id="description"
-                defaultValue={currentCampaign?.description || ""}
+                value={formCampaign.description || ""}
+                onChange={handleInputChange}
                 className="col-span-3"
               />
             </div>
@@ -249,7 +264,8 @@ const Campaigns = () => {
               <Input
                 id="startDate"
                 type="date"
-                defaultValue={currentCampaign?.startDate || ""}
+                value={formCampaign.startDate || ""}
+                onChange={handleInputChange}
                 className="col-span-3"
               />
             </div>
@@ -260,18 +276,20 @@ const Campaigns = () => {
               <Input
                 id="endDate"
                 type="date"
-                defaultValue={currentCampaign?.endDate || ""}
+                value={formCampaign.endDate || ""}
+                onChange={handleInputChange}
                 className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="target" className="text-right">
+              <Label htmlFor="goal" className="text-right">
                 Mục tiêu (VNĐ)
               </Label>
               <Input
-                id="target"
+                id="goal"
                 type="number"
-                defaultValue={currentCampaign?.target || ""}
+                value={formCampaign.goal || ""}
+                onChange={handleInputChange}
                 className="col-span-3"
               />
             </div>

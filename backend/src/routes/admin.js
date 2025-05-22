@@ -25,4 +25,6 @@ route.put('/updatePayment', verifyTokenAdmin, adminController.updatePayment)
 route.get('/fee-collection-data', verifyTokenAdmin, adminController.getFeeCollectionData)
 route.get('/fee-type-distribution', verifyTokenAdmin, adminController.getFeeTypeDistribution)
 route.get('/active-campaigns', verifyTokenAdmin, adminController.getActiveCampaigns)
+route.post('/addContribution', verifyTokenAdmin, adminController.addContribution)
+route.get('/getContribution', verifyTokenAdmin, adminController.getContribution)
 module.exports = route
