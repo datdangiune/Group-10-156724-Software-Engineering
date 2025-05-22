@@ -1,31 +1,9 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { useFeeCollectionData, useFeeTypeDistribution, useActiveCampaigns } from "@/hooks/useHouseholds";
+import Cookies from "js-cookie";
 
 // Mock data for the dashboard
-const feeCollectionData = [
-  { month: 'Jan', amount: 125000000 },
-  { month: 'Feb', amount: 130000000 },
-  { month: 'Mar', amount: 135000000 },
-  { month: 'Apr', amount: 140000000 },
-  { month: 'May', amount: 142000000 },
-  { month: 'Jun', amount: 145000000 }
-];
-
-const feeTypesData = [
-  { name: 'Quản lý', value: 45 },
-  { name: 'Dịch vụ', value: 25 },
-  { name: 'Đỗ xe', value: 15 },
-  { name: 'Tiện ích', value: 10 },
-  { name: 'Quyên góp', value: 5 },
-];
-
-const activeCampaigns = [
-  { name: "Quyên góp từ thiện mùa hè", description: "Giúp đỡ người vô gia cư", end: "2025-08-15", collected: 15500000, target: 50000000 },
-  { name: "Hỗ trợ trẻ em vùng cao", description: "Mua sách vở và đồ dùng học tập", end: "2025-09-30", collected: 32000000, target: 40000000 },
-  { name: "Phát triển cơ sở vật chất", description: "Nâng cấp khu vui chơi", end: "2025-07-20", collected: 45000000, target: 70000000 }
-];
-
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 // Format Vietnamese currency
@@ -43,6 +21,31 @@ const formatPercentage = (value: number) => {
 };
 
 const Dashboard = () => {
+  const accessToken = Cookies.get("accessToken");
+  const { data: feeCollectionData = [], isLoading: loadingFeeCol } = useFeeCollectionData();
+  const { data: feeTypesData = [], isLoading: loadingFeeType } = useFeeTypeDistribution();
+  const { data: activeCampaigns = [], isLoading: loadingCampaigns } = useActiveCampaigns();
+
+  // Tổng thu phí tháng mới nhất
+  const totalFee = feeCollectionData.length > 0
+    ? feeCollectionData[feeCollectionData.length - 1].amount
+    : 0;
+
+  // Số chiến dịch quyên góp đang hoạt động
+  const campaignCount = activeCampaigns.length;
+
+  // Tỷ lệ thu phí (ví dụ: tổng các loại phí đã thu / tổng mục tiêu, hoặc bạn có thể lấy từ backend nếu có)
+  // Ở đây chỉ demo, bạn có thể thay bằng logic thực tế
+  const feeRate = feeTypesData.reduce((acc, cur) => cur.name !== "Quyên góp" ? acc + cur.value : acc, 0);
+
+  // Số hộ gia đình và số hộ chưa đóng phí: cần fetch thêm từ backend nếu muốn realtime
+  const totalHouseholds = 560; // TODO: fetch thực tế nếu cần
+  const unpaidHouseholds = 120; // TODO: fetch thực tế nếu cần
+
+  if (loadingFeeCol || loadingFeeType || loadingCampaigns) {
+    return <div>Đang tải dữ liệu...</div>;
+  }
+
   return (
     <div className="space-y-6">
       {/* Quick Stats */}
@@ -50,11 +53,11 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Tổng thu phí</CardDescription>
-            <CardTitle className="text-3xl">{formatCurrency(145000000)}</CardTitle>
+            <CardTitle className="text-3xl">{formatCurrency(totalFee)}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              +8% so với tháng trước
+              {/* Có thể tính toán % tăng giảm nếu muốn */}
             </p>
           </CardContent>
         </Card>
@@ -62,11 +65,11 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Số hộ gia đình</CardDescription>
-            <CardTitle className="text-3xl">560</CardTitle>
+            <CardTitle className="text-3xl">{totalHouseholds}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              120 hộ chưa đóng phí tháng này
+              {unpaidHouseholds} hộ chưa đóng phí tháng này
             </p>
           </CardContent>
         </Card>
@@ -74,11 +77,11 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Tỷ lệ thu phí</CardDescription>
-            <CardTitle className="text-3xl">78.6%</CardTitle>
+            <CardTitle className="text-3xl">{feeRate}%</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              +2.5% so với tháng trước
+              {/* Có thể tính toán % tăng giảm nếu muốn */}
             </p>
           </CardContent>
         </Card>
@@ -86,7 +89,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Chiến dịch quyên góp</CardDescription>
-            <CardTitle className="text-3xl">3</CardTitle>
+            <CardTitle className="text-3xl">{campaignCount}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">

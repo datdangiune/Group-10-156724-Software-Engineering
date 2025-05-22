@@ -882,6 +882,188 @@ const addContribution = async (req, res) => {
     });
   }
 }
+const getFeeCollectionData = async (req, res) => {
+  try {
+    // Lấy tổng amount theo từng tháng
+    const { fn, col } = require('sequelize');
+    const results = await FeeHousehold.findAll({
+      attributes: [
+        [fn('LEFT', col('month'), 7), 'month'],
+        [fn('SUM', col('amount')), 'amount']
+      ],
+      group: ['month'],
+      order: [[col('month'), 'ASC']],
+      raw: true
+    });
+
+    // Map tháng từ 'YYYY-MM' sang 'Jan', 'Feb', ...
+    const monthMap = {
+      '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
+      '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug',
+      '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
+    };
+
+    const data = results.map(item => {
+      const monthNum = item.month.split('-')[1];
+      return {
+        month: monthMap[monthNum] || item.month,
+        amount: Number(item.amount)
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Get fee collection data successfully',
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
+const getFeeTypeDistribution = async (req, res) => {
+  try {
+    // Lấy tổng số tiền từng loại phí từ FeeService và FeeHousehold
+    const { fn, col } = require('sequelize');
+    // Lấy các loại phí và tổng amount từng loại
+    const feeTypeResults = await FeeHousehold.findAll({
+      include: [{
+        model: FeeService,
+        attributes: ['type']
+      }],
+      attributes: [
+        [fn('COALESCE', col('FeeService.type'), 'Khác'), 'type'],
+        [fn('SUM', col('amount')), 'total']
+      ],
+      group: ['FeeService.type'],
+      raw: true
+    });
+
+    // Lấy tổng quyên góp
+    const contributionResult = await ContributionPayment.findAll({
+      attributes: [[fn('SUM', col('amount')), 'total']],
+      raw: true
+    });
+
+    // Chuẩn hóa dữ liệu
+    const typeMap = {
+      'Quản lý': 'Quản lý',
+      'Dịch vụ': 'Dịch vụ',
+      'Đỗ xe': 'Đỗ xe',
+      'Tiện ích': 'Tiện ích',
+      'Điện': 'Tiện ích',
+      'Nước': 'Tiện ích',
+      'Internet': 'Tiện ích',
+      'Khác': 'Khác'
+    };
+
+    // Gom nhóm các loại tiện ích vào 'Tiện ích'
+    const distribution = {};
+    feeTypeResults.forEach(item => {
+      const mapped = typeMap[item.type] || 'Khác';
+      if (!distribution[mapped]) distribution[mapped] = 0;
+      distribution[mapped] += Number(item.total);
+    });
+
+    // Thêm quyên góp
+    const contributionTotal = Number(contributionResult[0]?.total || 0);
+    distribution['Quyên góp'] = contributionTotal;
+
+    // Tính tổng tất cả
+    const total = Object.values(distribution).reduce((sum, v) => sum + v, 0);
+
+    // Tính phần trăm và trả về đúng format
+    const data = [
+      { name: 'Quản lý', value: 0 },
+      { name: 'Dịch vụ', value: 0 },
+      { name: 'Đỗ xe', value: 0 },
+      { name: 'Tiện ích', value: 0 },
+      { name: 'Quyên góp', value: 0 }
+    ];
+    data.forEach(item => {
+      if (distribution[item.name]) {
+        item.value = total > 0 ? Math.round((distribution[item.name] / total) * 100) : 0;
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Get fee type distribution successfully',
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
+const getActiveCampaigns = async (req, res) => {
+  try {
+    // Lấy các chiến dịch quyên góp còn hạn (endDate >= hôm nay)
+    const today = new Date();
+    const campaigns = await Contribution.findAll({
+      where: {
+        endDate: { [Op.gte]: today }
+      },
+      attributes: ['name', 'description', 'endDate', 'goal'],
+      raw: true
+    });
+
+    // Lấy tổng số tiền đã quyên góp cho từng campaign
+    const payments = await ContributionPayment.findAll({
+      attributes: [
+        'contributionId',
+        [require('sequelize').fn('SUM', require('sequelize').col('amount')), 'collected']
+      ],
+      group: ['contributionId'],
+      raw: true
+    });
+
+    // Map contributionId -> collected
+    const collectedMap = {};
+    payments.forEach(p => {
+      collectedMap[p.contributionId] = Number(p.collected || 0);
+    });
+
+    // Lấy id cho từng campaign
+    const allCampaigns = await Contribution.findAll({
+      where: {
+        endDate: { [Op.gte]: today }
+      },
+      attributes: ['id', 'name'],
+      raw: true
+    });
+    const idMap = {};
+    allCampaigns.forEach(c => { idMap[c.name] = c.id; });
+
+    // Format kết quả
+    const result = campaigns.map(c => ({
+      name: c.name,
+      description: c.description,
+      end: c.endDate,
+      collected: collectedMap[idMap[c.name]] || 0,
+      target: c.goal
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: 'Get active campaigns successfully',
+      data: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -899,5 +1081,8 @@ module.exports = {
   autoAddManagementAndServiceFee,
   getAllManagementAndServiceFees,
   getHouseholdFeePerMonth,
-  updatePayment
+  updatePayment,
+  getFeeCollectionData,
+  getFeeTypeDistribution,
+  getActiveCampaigns
 };

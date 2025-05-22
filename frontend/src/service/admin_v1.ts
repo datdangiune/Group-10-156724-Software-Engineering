@@ -332,6 +332,93 @@ export async function getAllFee(accessToken: string, month: string): Promise<get
     }
 }
 
+//Dashboard/statistics API types
+export interface FeeCollectionDataItem {
+  month: string;
+  amount: number;
+}
+export interface FeeCollectionDataResponse {
+  success: boolean;
+  message: string;
+  data: FeeCollectionDataItem[];
+}
+
+export interface FeeTypeDistributionItem {
+  name: string;
+  value: number;
+}
+export interface FeeTypeDistributionResponse {
+  success: boolean;
+  message: string;
+  data: FeeTypeDistributionItem[];
+}
+
+export interface ActiveCampaignItem {
+  name: string;
+  description: string;
+  end: string;
+  collected: number;
+  target: number;
+}
+export interface ActiveCampaignsResponse {
+  success: boolean;
+  message: string;
+  data: ActiveCampaignItem[];
+}
+
+// Fetch fee collection data
+export async function getFeeCollectionData(accessToken: string): Promise<FeeCollectionDataResponse> {
+  try {
+    const response = await axios.get(`${url}/admin/fee-collection-data`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const data: FeeCollectionDataResponse = response.data;
+    if (!data.success) throw new Error(data.message);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+// Fetch fee type distribution
+export async function getFeeTypeDistribution(accessToken: string): Promise<FeeTypeDistributionResponse> {
+  try {
+    const response = await axios.get(`${url}/admin/fee-type-distribution`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const data: FeeTypeDistributionResponse = response.data;
+    if (!data.success) throw new Error(data.message);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+// Fetch active campaigns
+export async function getActiveCampaigns(accessToken: string): Promise<ActiveCampaignsResponse> {
+  try {
+    const response = await axios.get(`${url}/admin/active-campaigns`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const data: ActiveCampaignsResponse = response.data;
+    if (!data.success) throw new Error(data.message);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
 
 //News
 

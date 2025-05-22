@@ -22,4 +22,7 @@ route.post('/addVehicle', verifyTokenAdmin, adminController_v2.addVehicle)
 route.get('/getVehicle', verifyTokenAdmin, adminController_v2.getVehicle)
 route.get('/allHouseholdPerMonth', verifyTokenAdmin, adminController.getHouseholdFeePerMonth)
 route.put('/updatePayment', verifyTokenAdmin, adminController.updatePayment)
+route.get('/fee-collection-data', verifyTokenAdmin, adminController.getFeeCollectionData)
+route.get('/fee-type-distribution', verifyTokenAdmin, adminController.getFeeTypeDistribution)
+route.get('/active-campaigns', verifyTokenAdmin, adminController.getActiveCampaigns)
 module.exports = route
