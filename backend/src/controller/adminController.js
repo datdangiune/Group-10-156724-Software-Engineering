@@ -1142,7 +1142,6 @@ const getUnpaidHouseholds = async (req, res) => {
   }
 }
 
-
 // API trả về tổng phí đã thu, tổng phí chưa thu, tổng phí phải thu (tháng hiện tại)
 const getFeeSummary = async (req, res) => {
   try {
@@ -1193,6 +1192,84 @@ const getFeeSummary = async (req, res) => {
   }
 };
 
+// Báo cáo: Tổng thu theo tháng (dữ liệu đã có: getFeeCollectionData)
+// Báo cáo: Thu phí theo loại (dữ liệu đã có: getFeeTypeDistribution)
+
+// Báo cáo: Danh sách hộ gia đình chưa thanh toán trong tháng
+const getUnpaidHouseholdDetails = async (req, res) => {
+  try {
+    // Lấy tháng hiện tại hoặc từ query
+    let { month } = req.query;
+    if (!month) {
+      const currentDate = new Date();
+      const yyyy = currentDate.getFullYear();
+      const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+      month = `${yyyy}-${mm}`;
+    }
+
+    // Lấy tất cả household đang active
+    const households = await Household.findAll({
+      where: { isActive: true },
+      attributes: ['id', 'apartmentNumber'],
+      include: [
+        {
+          model: UserHousehold,
+          where: { isOwner: true },
+          attributes: [],
+          include: [
+            {
+              model: User,
+              attributes: ['fullname'],
+            }
+          ]
+        }
+      ],
+      raw: true,
+      nest: true
+    });
+
+    // Lấy tổng số tiền chưa thanh toán của từng household trong tháng
+    const unpaid = await FeeHousehold.findAll({
+      where: {
+        month,
+        status: { [Op.ne]: 'paid' }
+      },
+      attributes: [
+        'householdId',
+        [require('sequelize').fn('SUM', require('sequelize').col('amount')), 'unpaidAmount']
+      ],
+      group: ['householdId'],
+      raw: true
+    });
+
+    // Map householdId -> unpaidAmount
+    const unpaidMap = {};
+    unpaid.forEach(item => {
+      unpaidMap[item.householdId] = Number(item.unpaidAmount || 0);
+    });
+
+    // Kết hợp thông tin household, chủ hộ, số tiền chưa thanh toán
+    const result = households
+      .filter(hh => unpaidMap[hh.id] > 0)
+      .map(hh => ({
+        household: hh.apartmentNumber || hh.id,
+        owner: hh.UserHouseholds?.User?.fullname || "",
+        unpaidAmount: unpaidMap[hh.id]
+      }));
+
+    res.status(200).json({
+      success: true,
+      message: "Get unpaid household details successfully",
+      data: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
 
 module.exports = {
   getHouseholdUsersInfo,
@@ -1221,6 +1298,7 @@ module.exports = {
 
   getTotalHouseholds,
   getUnpaidHouseholds,
-  getFeeSummary
+  getFeeSummary,
 
+  getUnpaidHouseholdDetails
 };
