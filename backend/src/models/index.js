@@ -4,9 +4,9 @@ const UserHousehold = require('./userHousehold');
 const Vehicle = require('./vehicle');
 const FeeService = require('./feeService');
 const FeeHousehold = require('./FeeHousehold');
-const ContributionFund = require('./ContributionFund');
-const ContributionCampaign = require('./ContributionCampaign');
+const Contribution = require('./Contribution');
 const ContributionPayment = require('./ContributionPayment');
+
 
 // User - UserHousehold - Household
 
@@ -25,15 +25,14 @@ FeeHousehold.belongsTo(FeeService, { foreignKey: 'feeServiceId' });
 Household.hasMany(FeeHousehold, { foreignKey: 'householdId' });
 FeeHousehold.belongsTo(Household, { foreignKey: 'householdId' });
 
-// ContributionFund - ContributionCampaign
-ContributionFund.hasMany(ContributionCampaign, { foreignKey: 'contributionFundId' });
-ContributionCampaign.belongsTo(ContributionFund, { foreignKey: 'contributionFundId' });
+// Contribution - ContributionPayment - Household
+Contribution.hasMany(ContributionPayment, { foreignKey: 'contributionId' });
+ContributionPayment.belongsTo(Contribution, { foreignKey: 'contributionId' });
 
-// ContributionCampaign - ContributionPayment - Household
-ContributionCampaign.hasMany(ContributionPayment, { foreignKey: 'contributionCampaignId' });
-ContributionPayment.belongsTo(ContributionCampaign, { foreignKey: 'contributionCampaignId' });
 Household.hasMany(ContributionPayment, { foreignKey: 'householdId' });
 ContributionPayment.belongsTo(Household, { foreignKey: 'householdId' });
+
+
 
 
 
@@ -45,8 +44,6 @@ module.exports = {
   Vehicle,
   FeeService,
   FeeHousehold,
-  ContributionFund,
-  ContributionCampaign,
-  ContributionPayment,
-
+  Contribution,
+  ContributionPayment
 };

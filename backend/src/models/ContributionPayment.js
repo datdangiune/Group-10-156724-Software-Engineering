@@ -14,11 +14,11 @@ const ContributionPayment = sequelize.define('ContributionPayment', {
       key: 'id',
     },
   },
-  contributionCampaignId: {
+  contributionId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'contribution_campaigns',
+      model: 'contribution',
       key: 'id',
     },
   },
@@ -26,11 +26,7 @@ const ContributionPayment = sequelize.define('ContributionPayment', {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
-  status: { // Tình trạng đóng: 'paid', 'pending', 'exempt' (miễn đóng)
-    type: DataTypes.ENUM('paid', 'pending', 'exempt'),
-    allowNull: false,
-    defaultValue: 'pending',
-  },
+
   paymentDate: DataTypes.DATE,
   note: DataTypes.STRING,
 }, {
