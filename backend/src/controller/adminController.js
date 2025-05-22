@@ -1063,7 +1063,7 @@ const getActiveCampaigns = async (req, res) => {
     });
   }
 }
-<<<<<<< Updated upstream
+
 const getContribution = async (req, res) => {
   try {
     const response = await Contribution.findAll();
@@ -1077,28 +1077,29 @@ const getContribution = async (req, res) => {
       success: true,
       message: 'Get contribution successfully',
       data: response
-=======
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
 const getTotalHouseholds = async (req, res) => {
   try {
     const total = await Household.count({ where: { isActive: true } });
     res.status(200).json({
       success: true,
       message: "Get total households successfully",
-      total
->>>>>>> Stashed changes
-    });
-  } catch (error) {
+      total});
+    } catch (error) {
     res.status(500).json({
       success: false,
-<<<<<<< Updated upstream
-      message: 'Internal server error',
-=======
       message: "Internal server error",
       error: error.message
-    });
+    })}
   }
-};
-
 const getUnpaidHouseholds = async (req, res) => {
   try {
     // Lấy tháng hiện tại
@@ -1136,13 +1137,11 @@ const getUnpaidHouseholds = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal server error",
->>>>>>> Stashed changes
       error: error.message
     });
   }
 }
-<<<<<<< Updated upstream
-=======
+
 
 // API trả về tổng phí đã thu, tổng phí chưa thu, tổng phí phải thu (tháng hiện tại)
 const getFeeSummary = async (req, res) => {
@@ -1194,7 +1193,7 @@ const getFeeSummary = async (req, res) => {
   }
 };
 
->>>>>>> Stashed changes
+
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1216,12 +1215,12 @@ module.exports = {
   getFeeCollectionData,
   getFeeTypeDistribution,
   getActiveCampaigns,
-<<<<<<< Updated upstream
+
   addContribution,
   getContribution,
-=======
+
   getTotalHouseholds,
   getUnpaidHouseholds,
   getFeeSummary
->>>>>>> Stashed changes
+
 };

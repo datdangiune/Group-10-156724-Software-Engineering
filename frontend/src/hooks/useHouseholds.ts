@@ -12,13 +12,13 @@ import {
     getFeeCollectionData, 
     getFeeTypeDistribution, 
     getActiveCampaigns,
-<<<<<<< Updated upstream
-    getContribution
-=======
+
+    getContribution,
+
     getTotalHouseholds,
     getUnpaidHouseholds,
     getFeeSummary
->>>>>>> Stashed changes
+
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
@@ -399,7 +399,7 @@ export const useActiveCampaigns = () => {
         gcTime,
     });
 }
-<<<<<<< Updated upstream
+
 export const useContribution = () => {
     const { toast } = useToast();
     const accessToken = Cookies.get("accessToken");
@@ -408,7 +408,19 @@ export const useContribution = () => {
         queryFn: async () => {
             try {
                 const response = await getContribution(accessToken);
-=======
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu chiến dịch quyên góp."
+                });
+            }
+        },
+        staleTime,
+        gcTime,
+    });
+}
+
 
 export const useTotalHouseholds = () => {
     const { toast } = useToast();
@@ -418,20 +430,13 @@ export const useTotalHouseholds = () => {
         queryFn: async () => {
             try {
                 const response = await getTotalHouseholds(accessToken);
->>>>>>> Stashed changes
+
                 if (!response.success) {
                     toast({
                         title: "Lỗi",
                         description: response.message,
                     });
                 }
-<<<<<<< Updated upstream
-                return response.data;
-            } catch (error) {
-                toast({
-                    title: "Lỗi",
-                    description: "Không thể tải dữ liệu chiến dịch quyên góp.",
-=======
                 return response.total;
             } catch (error) {
                 toast({
@@ -491,7 +496,6 @@ export const useFeeSummary = () => {
                 toast({
                     title: "Lỗi",
                     description: "Không thể tải tổng hợp phí tháng hiện tại.",
->>>>>>> Stashed changes
                 });
             }
         },

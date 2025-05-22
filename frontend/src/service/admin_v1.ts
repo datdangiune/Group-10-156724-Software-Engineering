@@ -495,7 +495,7 @@ export async function updatePayment(accessToken: string, id: string): Promise<up
     }
 }
 
-<<<<<<< Updated upstream
+
 export type Contribution = {
     id: string;
     name: string;
@@ -552,8 +552,9 @@ export async function addContribution(data: Contribution, accessToken: string): 
         }
         
     }
+}
     
-=======
+
 // Tổng số hộ gia đình đang hoạt động
 export interface TotalHouseholdsResponse {
   success: boolean;
@@ -626,5 +627,4 @@ export async function getFeeSummary(accessToken: string): Promise<FeeSummaryResp
       throw new Error('An unknown error occurred');
     }
   }
->>>>>>> Stashed changes
 }

@@ -149,12 +149,6 @@ const Utilities = () => {
 
   };
 
-  const markAsPaid = (id: string) => {
-    toast({
-      title: "Đã đánh dấu đã thanh toán",
-      description: "Khoản phí tiện ích đã được đánh dấu là đã thanh toán.",
-    });
-  };
 
   return (
     <div className="space-y-6">
