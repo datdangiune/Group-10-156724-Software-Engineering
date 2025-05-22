@@ -183,11 +183,11 @@ const Campaigns = () => {
                   </TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      campaign.status === 'active' 
+                      campaign.status === 'Đã hoàn thành' 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-blue-100 text-blue-800'
                     }`}>
-                      {campaign.status === 'active' ? 'Đang diễn ra' : 'Đã hoàn thành'}
+                      {campaign.status === 'Đang diễn ra' ? 'Đang diễn ra' : 'Đã hoàn thành'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
