@@ -17,7 +17,9 @@ import {
 
     getTotalHouseholds,
     getUnpaidHouseholds,
-    getFeeSummary
+    getFeeSummary,
+
+    getUnpaidHouseholdDetails,
 
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
@@ -496,6 +498,33 @@ export const useFeeSummary = () => {
                 toast({
                     title: "Lỗi",
                     description: "Không thể tải tổng hợp phí tháng hiện tại.",
+                });
+            }
+        },
+        staleTime,
+        gcTime,
+    });
+}
+
+export const useUnpaidHouseholdDetails = (month?: string) => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['unpaidHouseholdDetails', month],
+        queryFn: async () => {
+            try {
+                const response = await getUnpaidHouseholdDetails(accessToken, month);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải danh sách hộ chưa thanh toán.",
                 });
             }
         },

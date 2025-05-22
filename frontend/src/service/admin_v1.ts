@@ -628,3 +628,23 @@ export async function getFeeSummary(accessToken: string): Promise<FeeSummaryResp
     }
   }
 }
+
+// Lấy danh sách chi tiết hộ gia đình chưa thanh toán trong tháng
+export interface UnpaidHouseholdDetail {
+  household: string;
+  owner: string;
+  unpaidAmount: number;
+}
+export interface GetUnpaidHouseholdDetailsResponse {
+  success: boolean;
+  message: string;
+  data: UnpaidHouseholdDetail[];
+}
+
+export async function getUnpaidHouseholdDetails(accessToken: string, month?: string): Promise<GetUnpaidHouseholdDetailsResponse> {
+  const params = month ? `?month=${month}` : "";
+  const response = await axios.get(`${url}/admin/unpaid-household-details${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  return response.data;
+}

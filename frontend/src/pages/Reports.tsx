@@ -1,23 +1,22 @@
-
 import { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -25,6 +24,12 @@ import {
 } from "recharts";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Cookies from "js-cookie";
+import {
+  useFeeCollectionData,
+  useFeeTypeDistribution,
+  useUnpaidHouseholdDetails
+} from "@/hooks/useHouseholds";
 
 // Mock data for reports
 const monthlyFeesByType = [
@@ -64,15 +69,30 @@ const formatCurrency = (value: number) => {
 
 const Reports = () => {
   const { toast } = useToast();
-  const [selectedMonth, setSelectedMonth] = useState("2025-05");
-  
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  // Lấy accessToken từ cookie như Dashboard
+  const accessToken = Cookies.get("accessToken");
+
+  // Fetch data từ backend
+  const { data: monthlyCollectionData = [], isLoading: loadingCollection } = useFeeCollectionData();
+  const { data: monthlyFeesByType = [], isLoading: loadingType } = useFeeTypeDistribution();
+  const { data: unpaidHouseholds = [], isLoading: loadingUnpaid } = useUnpaidHouseholdDetails(selectedMonth);
+
   const handleExport = (format: string) => {
     toast({
       title: `Xuất báo cáo sang định dạng ${format.toUpperCase()}`,
       description: "Báo cáo đã được tải xuống thành công.",
     });
   };
-  
+
+  if (loadingCollection || loadingType || loadingUnpaid) {
+    return <div>Đang tải dữ liệu...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -109,7 +129,7 @@ const Reports = () => {
               Xuất CSV
             </Button>
           </div>
-          
+
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyCollectionData}>
@@ -150,21 +170,21 @@ const Reports = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {monthlyFeesByType.map((item, index) => (
+                {monthlyFeesByType.map((item: any, index: number) => (
                   <TableRow key={index}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="size-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                        {item.type}
+                        {item.name || item.type}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.value || item.amount)}</TableCell>
                   </TableRow>
                 ))}
                 <TableRow>
                   <TableCell className="font-bold">Tổng cộng</TableCell>
                   <TableCell className="text-right font-bold">
-                    {formatCurrency(monthlyFeesByType.reduce((sum, item) => sum + item.amount, 0))}
+                    {formatCurrency(monthlyFeesByType.reduce((sum: number, item: any) => sum + (item.value || item.amount), 0))}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -190,11 +210,11 @@ const Reports = () => {
                     labelLine={false}
                     outerRadius={120}
                     fill="#8884d8"
-                    dataKey="amount"
-                    nameKey="type"
+                    dataKey="value"
+                    nameKey="name"
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
-                    {monthlyFeesByType.map((entry, index) => (
+                    {monthlyFeesByType.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -221,7 +241,7 @@ const Reports = () => {
               Xuất Excel
             </Button>
           </div>
-          
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -231,7 +251,7 @@ const Reports = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {unpaidHouseholds.map((item, index) => (
+              {unpaidHouseholds.map((item: any, index: number) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{item.household}</TableCell>
                   <TableCell>{item.owner}</TableCell>
@@ -241,7 +261,7 @@ const Reports = () => {
               <TableRow>
                 <TableCell colSpan={2} className="font-bold">Tổng cộng</TableCell>
                 <TableCell className="text-right font-bold">
-                  {formatCurrency(unpaidHouseholds.reduce((sum, item) => sum + item.unpaidAmount, 0))}
+                  {formatCurrency(unpaidHouseholds.reduce((sum: number, item: any) => sum + (item.unpaidAmount || 0), 0))}
                 </TableCell>
               </TableRow>
             </TableBody>

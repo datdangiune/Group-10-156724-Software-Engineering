@@ -31,6 +31,7 @@ route.get('/getContribution', verifyTokenAdmin, adminController.getContribution)
 
 route.get('/total-households', verifyTokenAdmin, adminController.getTotalHouseholds)
 route.get('/unpaid-households', verifyTokenAdmin, adminController.getUnpaidHouseholds)
+route.get('/unpaid-household-details', verifyTokenAdmin, adminController.getUnpaidHouseholdDetails)
 route.get('/fee-summary', verifyTokenAdmin, adminController.getFeeSummary)
 
 module.exports = route
