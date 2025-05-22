@@ -1063,6 +1063,7 @@ const getActiveCampaigns = async (req, res) => {
     });
   }
 }
+<<<<<<< Updated upstream
 const getContribution = async (req, res) => {
   try {
     const response = await Contribution.findAll();
@@ -1076,15 +1077,124 @@ const getContribution = async (req, res) => {
       success: true,
       message: 'Get contribution successfully',
       data: response
+=======
+const getTotalHouseholds = async (req, res) => {
+  try {
+    const total = await Household.count({ where: { isActive: true } });
+    res.status(200).json({
+      success: true,
+      message: "Get total households successfully",
+      total
+>>>>>>> Stashed changes
     });
   } catch (error) {
     res.status(500).json({
       success: false,
+<<<<<<< Updated upstream
       message: 'Internal server error',
+=======
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+const getUnpaidHouseholds = async (req, res) => {
+  try {
+    // Lấy tháng hiện tại
+    const currentDate = new Date();
+    const yyyy = currentDate.getFullYear();
+    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const currentMonth = `${yyyy}-${mm}`;
+
+    // Lấy danh sách householdId đang active
+    const activeHouseholds = await Household.findAll({
+      where: { isActive: true },
+      attributes: ['id'],
+      raw: true
+    });
+    const activeIds = activeHouseholds.map(h => h.id);
+
+    // Lấy householdId có ít nhất 1 khoản phí chưa paid trong tháng hiện tại
+    const unpaid = await FeeHousehold.findAll({
+      where: {
+        month: currentMonth,
+        status: { [Op.ne]: 'paid' },
+        householdId: { [Op.in]: activeIds }
+      },
+      attributes: ['householdId'],
+      group: ['householdId'],
+      raw: true
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Get unpaid households successfully",
+      unpaidCount: unpaid.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+>>>>>>> Stashed changes
       error: error.message
     });
   }
 }
+<<<<<<< Updated upstream
+=======
+
+// API trả về tổng phí đã thu, tổng phí chưa thu, tổng phí phải thu (tháng hiện tại)
+const getFeeSummary = async (req, res) => {
+  try {
+    // Lấy tháng hiện tại
+    const currentDate = new Date();
+    const yyyy = currentDate.getFullYear();
+    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const currentMonth = `${yyyy}-${mm}`;
+
+    // Tổng phí đã thu (status = 'paid')
+    const { fn, col } = require('sequelize');
+    const paidResult = await FeeHousehold.findAll({
+      where: { month: currentMonth, status: 'paid' },
+      attributes: [[fn('SUM', col('amount')), 'totalPaid']],
+      raw: true
+    });
+    const totalPaid = Number(paidResult[0]?.totalPaid || 0);
+
+    // Tổng phí chưa thu (status != 'paid')
+    const unpaidResult = await FeeHousehold.findAll({
+      where: { month: currentMonth, status: { [Op.ne]: 'paid' } },
+      attributes: [[fn('SUM', col('amount')), 'totalUnpaid']],
+      raw: true
+    });
+    const totalUnpaid = Number(unpaidResult[0]?.totalUnpaid || 0);
+
+    // Tổng phí phải thu (tất cả)
+    const allResult = await FeeHousehold.findAll({
+      where: { month: currentMonth },
+      attributes: [[fn('SUM', col('amount')), 'total']],
+      raw: true
+    });
+    const total = Number(allResult[0]?.total || 0);
+
+    res.status(200).json({
+      success: true,
+      message: "Get fee summary successfully",
+      totalPaid,
+      totalUnpaid,
+      total
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+>>>>>>> Stashed changes
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1106,6 +1216,12 @@ module.exports = {
   getFeeCollectionData,
   getFeeTypeDistribution,
   getActiveCampaigns,
+<<<<<<< Updated upstream
   addContribution,
   getContribution,
+=======
+  getTotalHouseholds,
+  getUnpaidHouseholds,
+  getFeeSummary
+>>>>>>> Stashed changes
 };

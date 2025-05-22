@@ -495,6 +495,7 @@ export async function updatePayment(accessToken: string, id: string): Promise<up
     }
 }
 
+<<<<<<< Updated upstream
 export type Contribution = {
     id: string;
     name: string;
@@ -552,4 +553,78 @@ export async function addContribution(data: Contribution, accessToken: string): 
         
     }
     
+=======
+// Tổng số hộ gia đình đang hoạt động
+export interface TotalHouseholdsResponse {
+  success: boolean;
+  message: string;
+  total: number;
+}
+
+// Số hộ chưa đóng phí tháng hiện tại
+export interface UnpaidHouseholdsResponse {
+  success: boolean;
+  message: string;
+  unpaidCount: number;
+}
+
+export async function getTotalHouseholds(accessToken: string): Promise<TotalHouseholdsResponse> {
+  try {
+    const response = await axios.get(`${url}/admin/total-households`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const data: TotalHouseholdsResponse = response.data;
+    if (!data.success) throw new Error(data.message);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+export async function getUnpaidHouseholds(accessToken: string): Promise<UnpaidHouseholdsResponse> {
+  try {
+    const response = await axios.get(`${url}/admin/unpaid-households`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const data: UnpaidHouseholdsResponse = response.data;
+    if (!data.success) throw new Error(data.message);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+// Tổng hợp phí tháng hiện tại (tổng đã thu, chưa thu, phải thu)
+export interface FeeSummaryResponse {
+  success: boolean;
+  message: string;
+  totalPaid: number;
+  totalUnpaid: number;
+  total: number;
+}
+
+export async function getFeeSummary(accessToken: string): Promise<FeeSummaryResponse> {
+  try {
+    const response = await axios.get(`${url}/admin/fee-summary`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const data: FeeSummaryResponse = response.data;
+    if (!data.success) throw new Error(data.message);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+>>>>>>> Stashed changes
 }

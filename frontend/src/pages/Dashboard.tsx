@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { useFeeCollectionData, useFeeTypeDistribution, useActiveCampaigns } from "@/hooks/useHouseholds";
+import { useFeeCollectionData, useFeeTypeDistribution, useActiveCampaigns, useTotalHouseholds, useUnpaidHouseholds, useFeeSummary } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
 
 // Mock data for the dashboard
@@ -17,7 +17,7 @@ const formatCurrency = (value: number) => {
 
 // Format percentage
 const formatPercentage = (value: number) => {
-  return `${value.toFixed(0)}%`;
+  return `${value.toFixed(1)}%`;
 };
 
 const Dashboard = () => {
@@ -25,39 +25,55 @@ const Dashboard = () => {
   const { data: feeCollectionData = [], isLoading: loadingFeeCol } = useFeeCollectionData();
   const { data: feeTypesData = [], isLoading: loadingFeeType } = useFeeTypeDistribution();
   const { data: activeCampaigns = [], isLoading: loadingCampaigns } = useActiveCampaigns();
+  const { data: totalHouseholds = 0, isLoading: loadingTotalHouseholds } = useTotalHouseholds();
+  const { data: unpaidHouseholds = 0, isLoading: loadingUnpaidHouseholds } = useUnpaidHouseholds();
+  const { data: feeSummary, isLoading: loadingFeeSummary } = useFeeSummary();
 
-  // Tổng thu phí tháng mới nhất
-  const totalFee = feeCollectionData.length > 0
-    ? feeCollectionData[feeCollectionData.length - 1].amount
-    : 0;
+  // Tổng phí đã thu tháng hiện tại
+  const totalPaid = feeSummary?.totalPaid ?? 0;
+  // Tổng phí phải thu tháng hiện tại
+  const totalFeeMustPay = feeSummary?.total ?? 0;
+  // Tỷ lệ thu phí tháng hiện tại
+  const feeRate = totalFeeMustPay > 0 ? (totalPaid / totalFeeMustPay) * 100 : 0;
 
   // Số chiến dịch quyên góp đang hoạt động
   const campaignCount = activeCampaigns.length;
 
-  // Tỷ lệ thu phí (ví dụ: tổng các loại phí đã thu / tổng mục tiêu, hoặc bạn có thể lấy từ backend nếu có)
-  // Ở đây chỉ demo, bạn có thể thay bằng logic thực tế
-  const feeRate = feeTypesData.reduce((acc, cur) => cur.name !== "Quyên góp" ? acc + cur.value : acc, 0);
-
-  // Số hộ gia đình và số hộ chưa đóng phí: cần fetch thêm từ backend nếu muốn realtime
-  const totalHouseholds = 560; // TODO: fetch thực tế nếu cần
-  const unpaidHouseholds = 120; // TODO: fetch thực tế nếu cần
-
-  if (loadingFeeCol || loadingFeeType || loadingCampaigns) {
+  if (
+    loadingFeeCol ||
+    loadingFeeType ||
+    loadingCampaigns ||
+    loadingTotalHouseholds ||
+    loadingUnpaidHouseholds ||
+    loadingFeeSummary
+  ) {
     return <div>Đang tải dữ liệu...</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Quick Stats */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Tổng thu phí</CardDescription>
-            <CardTitle className="text-3xl">{formatCurrency(totalFee)}</CardTitle>
+            <CardDescription>Tổng phí đã thu</CardDescription>
+            <CardTitle className="text-3xl">{formatCurrency(totalPaid)}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {/* Có thể tính toán % tăng giảm nếu muốn */}
+              {/* Tổng phí đã thu trong tháng hiện tại */}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Tổng phí trong tháng</CardDescription>
+            <CardTitle className="text-3xl">{formatCurrency(totalFeeMustPay)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {/* Tổng phí phải thu của tháng hiện tại */}
             </p>
           </CardContent>
         </Card>
@@ -77,7 +93,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Tỷ lệ thu phí</CardDescription>
-            <CardTitle className="text-3xl">{feeRate}%</CardTitle>
+            <CardTitle className="text-3xl">{formatPercentage(feeRate)}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">

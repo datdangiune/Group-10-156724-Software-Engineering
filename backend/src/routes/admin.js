@@ -25,6 +25,12 @@ route.put('/updatePayment', verifyTokenAdmin, adminController.updatePayment)
 route.get('/fee-collection-data', verifyTokenAdmin, adminController.getFeeCollectionData)
 route.get('/fee-type-distribution', verifyTokenAdmin, adminController.getFeeTypeDistribution)
 route.get('/active-campaigns', verifyTokenAdmin, adminController.getActiveCampaigns)
+<<<<<<< Updated upstream
 route.post('/addContribution', verifyTokenAdmin, adminController.addContribution)
 route.get('/getContribution', verifyTokenAdmin, adminController.getContribution)
+=======
+route.get('/total-households', verifyTokenAdmin, adminController.getTotalHouseholds)
+route.get('/unpaid-households', verifyTokenAdmin, adminController.getUnpaidHouseholds)
+route.get('/fee-summary', verifyTokenAdmin, adminController.getFeeSummary)
+>>>>>>> Stashed changes
 module.exports = route

@@ -12,7 +12,13 @@ import {
     getFeeCollectionData, 
     getFeeTypeDistribution, 
     getActiveCampaigns,
+<<<<<<< Updated upstream
     getContribution
+=======
+    getTotalHouseholds,
+    getUnpaidHouseholds,
+    getFeeSummary
+>>>>>>> Stashed changes
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
@@ -393,6 +399,7 @@ export const useActiveCampaigns = () => {
         gcTime,
     });
 }
+<<<<<<< Updated upstream
 export const useContribution = () => {
     const { toast } = useToast();
     const accessToken = Cookies.get("accessToken");
@@ -401,17 +408,90 @@ export const useContribution = () => {
         queryFn: async () => {
             try {
                 const response = await getContribution(accessToken);
+=======
+
+export const useTotalHouseholds = () => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['totalHouseholds'],
+        queryFn: async () => {
+            try {
+                const response = await getTotalHouseholds(accessToken);
+>>>>>>> Stashed changes
                 if (!response.success) {
                     toast({
                         title: "Lỗi",
                         description: response.message,
                     });
                 }
+<<<<<<< Updated upstream
                 return response.data;
             } catch (error) {
                 toast({
                     title: "Lỗi",
                     description: "Không thể tải dữ liệu chiến dịch quyên góp.",
+=======
+                return response.total;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải tổng số hộ gia đình.",
+                });
+            }
+        },
+        staleTime,
+        gcTime,
+    });
+}
+
+export const useUnpaidHouseholds = () => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['unpaidHouseholds'],
+        queryFn: async () => {
+            try {
+                const response = await getUnpaidHouseholds(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.unpaidCount;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải số hộ chưa đóng phí.",
+                });
+            }
+        },
+        staleTime,
+        gcTime,
+    });
+}
+
+export const useFeeSummary = () => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['feeSummary'],
+        queryFn: async () => {
+            try {
+                const response = await getFeeSummary(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải tổng hợp phí tháng hiện tại.",
+>>>>>>> Stashed changes
                 });
             }
         },
