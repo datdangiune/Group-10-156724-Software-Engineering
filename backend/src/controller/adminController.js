@@ -1,4 +1,4 @@
-const { Household, UserHousehold, User, FeeService,  FeeHousehold, Vehicle} = require('../models/index');
+const { Household, UserHousehold, User, FeeService,  FeeHousehold, Contribution, ContributionPayment} = require('../models/index');
 const { Op } = require('sequelize');
 const getHouseholdUsersInfo = async (req, res) => {
   try { 
@@ -363,40 +363,34 @@ const getHouseholdActive = async (req, res) => {
       message: 'Missing required query param: month',
     });
   }
-
-  const electricityId = "dfd15bda-e6f9-414a-a06d-54b6f591c328";
-  const waterId = "22613ce3-314c-45fd-82bb-e9c29a9fde05";
-
   try {
     const usedHouseholds = await FeeHousehold.findAll({
       attributes: ['householdId'],
-      where: {
-        month,
-        feeServiceId: {
-          [Op.in]: [electricityId, waterId]
-        }
-      },
+      where: { month },
       group: ['householdId'],
       raw: true,
     });
-
     const usedIds = usedHouseholds.map(item => item.householdId);
     const response = await Household.findAll({
       attributes: ['id', 'area'],
       where: {
         isActive: true,
         id: {
-          [Op.notIn]: usedIds.length ? usedIds : ['__dummy__']
+          [Op.notIn]: usedIds.length ? usedIds : [''] // nếu rỗng thì phải truyền array dummy để không lỗi
         }
       }
     });
-
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active household found'
+      });
+    }
     res.status(200).json({
       success: true,
       message: 'Get active household successfully',
       data: response
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -404,7 +398,7 @@ const getHouseholdActive = async (req, res) => {
       error: error.message
     });
   }
-};
+}
 const addFeeUtilityHouseholdPerMonth = async (req, res) => { //Tạm thời fix cứng do UI
   const {
     householdId,
@@ -523,99 +517,53 @@ const addFeeUtilityHouseholdPerMonth = async (req, res) => { //Tạm thời fix 
     });
   }
 };
-
-
-
-
 const getFeeUtilityHouseholdPerMonth = async (req, res) => {
-  const { month } = req.query;
+  const {month} = req.query;
   if (!month) {
     return res.status(400).json({
       success: false,
       message: 'Missing required field: month',
     });
   }
-
-  const internetId = "0609e56a-5eaa-46f6-8ac5-ae54249924c8";
-  const electricityId = "dfd15bda-e6f9-414a-a06d-54b6f591c328";
-  const waterId = "22613ce3-314c-45fd-82bb-e9c29a9fde05";
-
   try {
     const records = await FeeHousehold.findAll({
-      where: {
-        month,
-        feeServiceId: {
-          [Op.in]: [internetId, electricityId, waterId],
-        },
-      },
+      where : {month},
       raw: true,
     });
-
     const grouped = records.reduce((acc, record) => {
-      const id = record.householdId;
-
-      if (!acc[id]) {
-        acc[id] = {
-          householdId: id,
+      if (!acc[record.householdId]) {
+        acc[record.householdId] = {
+          householdId: record.householdId,
           water: 0,
           electricity: 0,
           internet: false,
           totalPrice: 0,
-          statuses: [],
+          statusInternet: null,
         };
       }
-
-      // Tính tiền và thu thập status
-      if (record.feeServiceId === waterId) {
-        acc[id].water += record.amount;
-        acc[id].totalPrice += record.amount;
-        acc[id].statuses.push(record.status);
+      if (record.water) acc[record.householdId].water += record.water;
+      if (record.electricity) acc[record.householdId].electricity += record.electricity;
+      if (record.internet) {
+        acc[record.householdId].internet = true;
+        acc[record.householdId].statusInternet = record.status;
       }
-
-      if (record.feeServiceId === electricityId) {
-        acc[id].electricity += record.amount;
-        acc[id].totalPrice += record.amount;
-        acc[id].statuses.push(record.status);
-      }
-
-      if (record.feeServiceId === internetId) {
-        acc[id].internet = true;
-
-        // Nếu internet có sử dụng → tính vào tiền
-        if (record.internet === true) {
-          acc[id].totalPrice += record.amount;
-        }
-
-        acc[id].statuses.push(record.status);
-      }
-
+      acc[record.householdId].totalPrice += record.amount;
       return acc;
     }, {});
-
-    // Tính toán statusPayment
-    const result = Object.values(grouped).map((item) => {
-      const hasPending = item.statuses.includes('pending');
-      return {
-        ...item,
-        statusPayment: hasPending ? 'pending' : 'paid',
-      };
-    });
+    const result = Object.values(grouped);
 
     return res.status(200).json({
       success: true,
       data: result,
     });
-
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message,
-    });
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message,
+      });
   }
-};
-
-
+}
 const getHouseholdInuse= async (req, res) => {
   try {
     const response = await Household.findAll({
@@ -673,35 +621,15 @@ const autoAddManagementAndServiceFee = async (req, res) => {
       attributes: ['id', 'area'],
       raw: true,
     });
-    const vehicles = await Vehicle.findAll({
-      attributes: ['householdId', 'vehicleType'],
-      where: {
-        vehicleType: { [Op.in]: ['Xe máy', 'Ô tô'] }
-      },
-      raw: true,
-    });
-    const vehicleCountMap = {}; // { householdId: { motor: 0, car: 0 } }
-
-    for (const v of vehicles) {
-      if (!vehicleCountMap[v.householdId]) {
-        vehicleCountMap[v.householdId] = { motor: 0, car: 0 };
-      }
-      if (v.vehicleType === 'Xe máy') vehicleCountMap[v.householdId].motor++;
-      if (v.vehicleType === 'Ô tô') vehicleCountMap[v.householdId].car++;
-    }
 
     // Lấy thông tin phí quản lý và phí dịch vụ
     const managementFeeId = "0c740662-c6e9-473c-b68d-5d25f935a208";
     const serviceFeeId = "1fb63de8-fb8c-496d-8721-ffbe614989ca";
-    const motorServiceId = "0f4afa3e-010b-49fa-a09a-fe3e843150b3";
-    const carServiceId = "cc8acc39-0870-4896-816d-21bbe928baa3";
-    const [managementFee, serviceFee, motorFee, carFee] = await Promise.all([
+    const [managementFee, serviceFee] = await Promise.all([
       FeeService.findByPk(managementFeeId),
       FeeService.findByPk(serviceFeeId),
-      FeeService.findByPk(motorServiceId),
-      FeeService.findByPk(carServiceId)
     ]);
-    if (!managementFee || !serviceFee || !motorFee || !carFee) {
+    if (!managementFee || !serviceFee) {
       return res.status(404).json({
         success: false,
         message: "Management or Service FeeService not found",
@@ -712,7 +640,7 @@ const autoAddManagementAndServiceFee = async (req, res) => {
     const existed = await FeeHousehold.findAll({
       where: {
         month,
-        feeServiceId: { [Op.in]: [managementFeeId, serviceFeeId, motorServiceId, carServiceId] },
+        feeServiceId: { [Op.in]: [managementFeeId, serviceFeeId] },
       },
       attributes: ['householdId', 'feeServiceId'],
       raw: true,
@@ -738,25 +666,6 @@ const autoAddManagementAndServiceFee = async (req, res) => {
           feeServiceId: serviceFeeId,
           month,
           amount: serviceFee.servicePrice * hh.area,
-        });
-      }
-      const vehicleCount = vehicleCountMap[hh.id] || { motor: 0, car: 0 };
-      // Phí xe máy
-      if (!existedSet.has(`${hh.id}_${motorServiceId}`) && vehicleCount.motor > 0) {
-        recordsToCreate.push({
-          householdId: hh.id,
-          feeServiceId: motorServiceId,
-          month,
-          amount: motorFee.servicePrice * vehicleCount.motor,
-        });
-      }
-      //Phí ô tô
-      if (!existedSet.has(`${hh.id}_${carServiceId}`) && vehicleCount.car > 0) {
-        recordsToCreate.push({
-          householdId: hh.id,
-          feeServiceId: carServiceId,
-          month,
-          amount: carFee.servicePrice * vehicleCount.car,
         });
       }
     }
@@ -798,12 +707,10 @@ const getAllManagementAndServiceFees = async (req, res) => {
   try {
     const managementFeeId = "0c740662-c6e9-473c-b68d-5d25f935a208";
     const serviceFeeId = "1fb63de8-fb8c-496d-8721-ffbe614989ca";
-    const motorServiceId = "0f4afa3e-010b-49fa-a09a-fe3e843150b3";
-    const carServiceId = "cc8acc39-0870-4896-816d-21bbe928baa3";
     const records = await FeeHousehold.findAll({
       where: {
         feeServiceId: {
-          [Op.in]: [managementFeeId, serviceFeeId, motorServiceId, carServiceId]
+          [Op.in]: [managementFeeId, serviceFeeId]
         },
         month: month
       },
@@ -943,6 +850,36 @@ const updatePayment = async (req, res) => {
         success: false,
         message: error.message,
       });
+  }
+}
+const addContribution = async (req, res) => {
+  const {name, description, startDate, endDate, goal, donate} = req.body;
+  if (!name || !description || !startDate || !endDate || !goal) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields: name, description, startDate, endDate, goal',
+    });
+  }
+  try {
+    await Contribution.create({
+      name,
+      description,
+      startDate,
+      endDate,
+      goal,
+      donate: donate || 0
+    });
+    return res.status(201).json({
+      success: true,
+      message: 'Contribution created successfully',
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });
   }
 }
 module.exports = {

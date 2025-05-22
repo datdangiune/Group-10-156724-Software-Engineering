@@ -132,8 +132,6 @@ const Utilities = () => {
       await addFeeUtility(utilityData, accessToken);
       queryClient.invalidateQueries({queryKey: ['feeUtility', month]});
       queryClient.invalidateQueries({queryKey: ['householdActive']});
-      queryClient.invalidateQueries({queryKey: ['getAllFeeOfHousehold', month]});
-      queryClient.invalidateQueries({queryKey: ['getAllFeeService', month]});
       toast({
         title: currentUtility ? "Dữ liệu tiện ích đã được cập nhật" : "Dữ liệu tiện ích mới đã được thêm",
         description: `Thao tác với tiện ích căn hộ ${data.householdId} thành công.`,
@@ -151,6 +149,12 @@ const Utilities = () => {
 
   };
 
+  const markAsPaid = (id: string) => {
+    toast({
+      title: "Đã đánh dấu đã thanh toán",
+      description: "Khoản phí tiện ích đã được đánh dấu là đã thanh toán.",
+    });
+  };
 
   return (
     <div className="space-y-6">
