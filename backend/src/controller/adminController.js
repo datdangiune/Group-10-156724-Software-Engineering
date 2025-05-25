@@ -356,6 +356,7 @@ const getHouseholdUnactive = async (req, res) => {
   }
 }
 const getHouseholdActive = async (req, res) => {
+  const REQUIRED_SERVICE_IDS = ['cf68679f-a97f-4d57-a505-64ffd165ee35', 'cf4aa82a-3fb1-42a7-a610-cebd57696424']; 
   const { month } = req.query;
   if (!month) {
     return res.status(400).json({
@@ -366,11 +367,16 @@ const getHouseholdActive = async (req, res) => {
   try {
     const usedHouseholds = await FeeHousehold.findAll({
       attributes: ['householdId'],
-      where: { month },
+      where: { month,
+        feeServiceId: {
+          [Op.in]: REQUIRED_SERVICE_IDS
+        }
+      },
       group: ['householdId'],
       raw: true,
     });
     const usedIds = usedHouseholds.map(item => item.householdId);
+    console.log('Used household IDs:', usedIds);
     const response = await Household.findAll({
       attributes: ['id', 'area'],
       where: {
@@ -630,6 +636,7 @@ const autoAddManagementAndServiceFee = async (req, res) => {
         message: "Missing required query param: month",
       });
     }
+
     const isValidFormat = /^\d{4}-\d{2}$/.test(month);
     if (!isValidFormat) {
       return res.status(400).json({
@@ -637,6 +644,7 @@ const autoAddManagementAndServiceFee = async (req, res) => {
         message: "Invalid month format. Expected format is YYYY-MM",
       });
     }
+
     const currentDate = new Date();
     const currentMonth = currentDate.toISOString().slice(0, 7);
     if (month > currentMonth) {
@@ -645,24 +653,25 @@ const autoAddManagementAndServiceFee = async (req, res) => {
         message: "Cannot add fees for future months",
       });
     }
-    // Lấy tất cả household đang hoạt động
+
     const households = await Household.findAll({
       where: { isActive: true },
       attributes: ['id', 'area'],
       raw: true,
     });
 
-    // Lấy thông tin phí quản lý, phí dịch vụ, phí gửi xe máy, phí gửi ô tô
     const managementFeeId = "d27e902c-977f-48dc-8982-fd9d5dd24e9b";
     const serviceFeeId = "a709f2dc-0534-4a41-8300-6b88b6cbc953";
     const motorFeeId = "e3b0486d-394e-46a7-9d26-31ea0cd2431f";
     const carFeeId = "971f6415-25bd-4194-ab98-b9c689fb95ae";
+
     const [managementFee, serviceFee, motorFee, carFee] = await Promise.all([
       FeeService.findByPk(managementFeeId),
       FeeService.findByPk(serviceFeeId),
       FeeService.findByPk(motorFeeId),
       FeeService.findByPk(carFeeId),
     ]);
+
     if (!managementFee || !serviceFee || !motorFee || !carFee) {
       return res.status(404).json({
         success: false,
@@ -670,92 +679,136 @@ const autoAddManagementAndServiceFee = async (req, res) => {
       });
     }
 
-    // Lấy tất cả householdId đã có record trong tháng này cho các loại phí
     const existed = await FeeHousehold.findAll({
       where: {
         month,
-        feeServiceId: { [Op.in]: [managementFeeId, serviceFeeId, motorFeeId, carFeeId] },
+        feeServiceId: {
+          [Op.in]: [managementFeeId, serviceFeeId, motorFeeId, carFeeId],
+        },
       },
       attributes: ['householdId', 'feeServiceId'],
       raw: true,
     });
-    const existedSet = new Set(existed.map(e => `${e.householdId}_${e.feeServiceId}`));
 
-    // Lấy số lượng xe máy và ô tô của từng household
+    const existedSet = new Set(existed.map(e => `${e.householdId}_${e.feeServiceId}`));
+    const existedVehicleFees = {};
+    existed.forEach(e => {
+      if (e.feeServiceId === motorFeeId || e.feeServiceId === carFeeId) {
+        existedVehicleFees[`${e.householdId}_${e.feeServiceId}`] = true;
+      }
+    });
+
     const vehicles = await Vehicle.findAll({
       attributes: ['householdId', 'vehicleType'],
       raw: true,
     });
-    // Map householdId -> { motor: count, car: count }
+
     const vehicleMap = {};
     vehicles.forEach(v => {
-      if (!vehicleMap[v.householdId]) vehicleMap[v.householdId] = { motor: 0, car: 0 };
+      if (!vehicleMap[v.householdId]) {
+        vehicleMap[v.householdId] = { motor: 0, car: 0 };
+      }
       if (v.vehicleType === "Xe máy") vehicleMap[v.householdId].motor += 1;
       if (v.vehicleType === "Ô tô") vehicleMap[v.householdId].car += 1;
     });
 
-    // Tạo danh sách cần insert cho các household chưa có phí trong tháng này
     const recordsToCreate = [];
+    const updatePromises = [];
+
     for (const hh of households) {
-      // Phí quản lý
-      if (!existedSet.has(`${hh.id}_${managementFeeId}`)) {
+      const { id: householdId, area } = hh;
+
+      // --- Quản lý ---
+      if (!existedSet.has(`${householdId}_${managementFeeId}`)) {
         recordsToCreate.push({
-          householdId: hh.id,
+          householdId,
           feeServiceId: managementFeeId,
           month,
-          amount: managementFee.servicePrice * hh.area,
+          amount: managementFee.servicePrice * area,
         });
       }
-      // Phí dịch vụ
-      if (!existedSet.has(`${hh.id}_${serviceFeeId}`)) {
+
+      // --- Dịch vụ ---
+      if (!existedSet.has(`${householdId}_${serviceFeeId}`)) {
         recordsToCreate.push({
-          householdId: hh.id,
+          householdId,
           feeServiceId: serviceFeeId,
           month,
-          amount: serviceFee.servicePrice * hh.area,
+          amount: serviceFee.servicePrice * area,
         });
       }
-      // Phí gửi xe máy
-      const motorCount = vehicleMap[hh.id]?.motor || 0;
-      if (motorCount > 0 && !existedSet.has(`${hh.id}_${motorFeeId}`)) {
-        recordsToCreate.push({
-          householdId: hh.id,
-          feeServiceId: motorFeeId,
-          month,
-          amount: motorFee.servicePrice * motorCount,
-        });
-      }
-      // Phí gửi ô tô
-      const carCount = vehicleMap[hh.id]?.car || 0;
-      if (carCount > 0 && !existedSet.has(`${hh.id}_${carFeeId}`)) {
-        recordsToCreate.push({
-          householdId: hh.id,
-          feeServiceId: carFeeId,
-          month,
-          amount: carFee.servicePrice * carCount,
-        });
-      }
-    }
 
-    // Nếu không có household nào mới, trả về thông báo
-    if (recordsToCreate.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "No new management/service/vehicle fee records to add for this month. If you have added new households or vehicles, please call this API again to add fees for them.",
-        totalCreated: 0,
-      });
+      // --- Gửi xe máy ---
+      const motorCount = vehicleMap[householdId]?.motor || 0;
+      const motorAmount = motorFee.servicePrice * motorCount;
+      const motorKey = `${householdId}_${motorFeeId}`;
+
+      if (motorCount > 0) {
+        if (!existedVehicleFees[motorKey]) {
+          recordsToCreate.push({
+            householdId,
+            feeServiceId: motorFeeId,
+            month,
+            amount: motorAmount,
+          });
+        } else {
+          updatePromises.push(
+            FeeHousehold.update(
+              { amount: motorAmount },
+              {
+                where: {
+                  householdId,
+                  feeServiceId: motorFeeId,
+                  month,
+                },
+              }
+            )
+          );
+        }
+      }
+
+      // --- Gửi ô tô ---
+      const carCount = vehicleMap[householdId]?.car || 0;
+      const carAmount = carFee.servicePrice * carCount;
+      const carKey = `${householdId}_${carFeeId}`;
+
+      if (carCount > 0) {
+        if (!existedVehicleFees[carKey]) {
+          recordsToCreate.push({
+            householdId,
+            feeServiceId: carFeeId,
+            month,
+            amount: carAmount,
+          });
+        } else {
+          updatePromises.push(
+            FeeHousehold.update(
+              { amount: carAmount },
+              {
+                where: {
+                  householdId,
+                  feeServiceId: carFeeId,
+                  month,
+                },
+              }
+            )
+          );
+        }
+      }
     }
 
     const created = await FeeHousehold.bulkCreate(recordsToCreate);
+    await Promise.all(updatePromises);
 
     return res.status(201).json({
       success: true,
-      message: "Added management, service, and vehicle fees for active households. If you add more households or vehicles later, call this API again to add fees for them.",
+      message: "Management, service, and vehicle fees have been added or updated successfully.",
       totalCreated: created.length,
-      data: created,
+      totalUpdated: updatePromises.length,
+      created,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in autoAddManagementAndServiceFee:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -763,6 +816,7 @@ const autoAddManagementAndServiceFee = async (req, res) => {
     });
   }
 };
+
 const getAllManagementAndServiceFees = async (req, res) => {
   const { month } = req.query;
   if (!month) {
@@ -1339,7 +1393,97 @@ const getUnpaidHouseholdDetails = async (req, res) => {
     });
   }
 };
-
+const addHouseholdToContribution = async (req, res) => {
+  const {contributionId, householdId, amount} = req.body;
+  if (!contributionId || !householdId || !amount) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields: contributionId, householdId, amount',
+    });
+  }
+  try {
+    const isExist = await ContributionPayment.findOne({
+      where: {
+        contributionId,
+        householdId
+      }
+    });
+    if (isExist) {
+      return res.status(400).json({
+        success: false,
+        message: 'Household already exists in this contribution'
+      });
+    }
+    const contribution = await Contribution.findByPk(contributionId);
+    if (!contribution) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contribution not found'
+      });
+    }
+    const household = await Household.findByPk(householdId);
+    if (!household) {
+      return res.status(404).json({
+        success: false,
+        message: 'Household not found'
+      });
+    }
+    if(amount > contribution.goal - contribution.donate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount exceeds the remaining goal of the contribution'
+      });
+    }
+    await ContributionPayment.create({
+      contributionId,
+      householdId,
+      amount,
+      paymentDate: new Date()
+    });
+    return res.status(201).json({
+      success: true,
+      message: 'Household added to contribution successfully'
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });  
+  }
+}
+const getContributionPayment = async (req, res) => {
+  try {
+    const response = await ContributionPayment.findAll({
+      include: [
+        {
+          model: Contribution,
+          attributes: ['name']
+        },
+      ],
+      raw: true,
+      nest: true
+    })
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No contribution payment found'
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Get contribution payment successfully',
+      data: response
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+}
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1361,13 +1505,13 @@ module.exports = {
   getFeeCollectionData,
   getFeeTypeDistribution,
   getActiveCampaigns,
-
   addContribution,
   getContribution,
-
   getTotalHouseholds,
   getUnpaidHouseholds,
   getFeeSummary,
-
-  getUnpaidHouseholdDetails
+  getUnpaidHouseholdDetails,
+  addHouseholdToContribution,
+  getContributionPayment,
+  
 };

@@ -18,7 +18,7 @@ import { autoAdd } from "@/service/admin_v1";
 import { useGetAll } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
 import { useQueryClient } from "@tanstack/react-query";
-
+import { useAuth } from "@/contexts/AuthContext";
 
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
@@ -35,6 +35,7 @@ const MonthlyFees = () => {
   const [month, setMonth] = useState("2025-05"); // Default to current month
   const accessToken = Cookies.get("accessToken");
   const { data: mockMonthlyFees } = useGetAll(month);
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   console.log(accessToken)
   const filteredFees = (mockMonthlyFees ?? []).filter(fee => 
@@ -47,6 +48,7 @@ const MonthlyFees = () => {
       console.log(accessToken)
       if (response.success) {
         queryClient.invalidateQueries({queryKey: ['getAllFeeService', month]});
+        queryClient.invalidateQueries({queryKey: ['getAllFeeOfHousehold', month]});
         toast({
           title: "Thành công",
           description: "Đã tự động thu phí cho tháng này.",
@@ -92,10 +94,13 @@ const MonthlyFees = () => {
                 className="w-64"
               />
             </div>
-          <Button  onClick={handleAutoAdd} className="ml-auto">
-            <Plus className="mr-2 h-4 w-4" />
-              Tự động thu phí
-          </Button>
+            {user?.role === 'ketoan' && (
+              <Button onClick={handleAutoAdd} className="ml-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Tự động thu phí
+              </Button>
+            )}
+
           </div>
         </CardHeader>
 

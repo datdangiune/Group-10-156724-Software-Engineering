@@ -20,6 +20,7 @@ import {
     getFeeSummary,
 
     getUnpaidHouseholdDetails,
+    getContributionPayment
 
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
@@ -525,6 +526,32 @@ export const useUnpaidHouseholdDetails = (month?: string) => {
                 toast({
                     title: "Lỗi",
                     description: "Không thể tải danh sách hộ chưa thanh toán.",
+                });
+            }
+        },
+        staleTime,
+        gcTime,
+    });
+}
+export const useContributionPayment = () => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['contributionPayment'],
+        queryFn: async () => {
+            try {
+                const response = await getContributionPayment(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu thanh toán quyên góp.",
                 });
             }
         },

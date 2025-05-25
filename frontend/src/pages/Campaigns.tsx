@@ -31,6 +31,7 @@ import { useContribution } from "@/hooks/useHouseholds";
 import { Contribution, addContribution } from "@/service/admin_v1";
 import Cookies from "js-cookie";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -44,6 +45,7 @@ const Campaigns = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentCampaign, setCurrentCampaign] = useState<Contribution | null>(null);
   const [formCampaign, setFormCampaign] = useState<Partial<Contribution>>({
@@ -107,7 +109,7 @@ const Campaigns = () => {
           title: "Chiến dịch đã được lưu",
           description: "Dữ liệu chiến dịch đã được lưu thành công.",
         });
-        queryClient.invalidateQueries({ queryKey: ["contribution"] });
+        queryClient.invalidateQueries({ queryKey: ['contribution'] });
       }
     } catch (error) {
       toast({
@@ -136,10 +138,12 @@ const Campaigns = () => {
               Quản lý các chiến dịch quyên góp của cộng đồng
             </CardDescription>
           </div>
-          <Button onClick={() => handleAddEdit(null)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm chiến dịch
-          </Button>
+          {user?.role === "ketoan" && (
+            <Button onClick={() => handleAddEdit(null)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Thêm chiến dịch
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 mb-4">

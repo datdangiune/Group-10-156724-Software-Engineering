@@ -16,21 +16,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
 import { Search, MoreHorizontal, Plus } from "lucide-react";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import Cookies from "js-cookie";
 import { AddHouseholdDialog } from "./AddHouseholdDialog";
 import { useHouseholds } from "@/hooks/useHouseholds";
+import { useAuth } from "@/contexts/AuthContext";
 const Households = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,7 +28,7 @@ const Households = () => {
   const [currentHousehold, setCurrentHousehold] = useState<any>(null);
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useHouseholds(page);
-
+  const { user } = useAuth();
   const households = data?.data || [];
   const total = data?.totalHouseholds || 0;
   const totalPages = data?.totalPages || 1;
@@ -83,11 +73,15 @@ const Households = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
     
-        
-        <Button onClick={() => handleAddEdit()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm hộ gia đình
-        </Button>
+        { user?.role === "admin" ? (
+          <Button onClick={() => handleAddEdit()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm hộ gia đình
+          </Button>
+        ) : (
+          null
+        )}
+ 
       </div>
       
       <Card>
