@@ -138,7 +138,8 @@ export const AddHouseholdDialog = ({
           });
           queryClient.invalidateQueries({queryKey: ["households"]});
           queryClient.invalidateQueries({queryKey: ["userInHouseholds"]});  
-          queryClient.invalidateQueries({queryKey: ["householdUnactive"]});    
+          queryClient.invalidateQueries({queryKey: ["householdUnactive"]});   
+          queryClient.invalidateQueries({queryKey: ["householdInuse"]}); 
           onOpenChange(false);
       } else {
         toast({

@@ -1440,6 +1440,14 @@ const addHouseholdToContribution = async (req, res) => {
       amount,
       paymentDate: new Date()
     });
+    // Cập nhật số tiền đã quyên góp trong Contribution
+    await Contribution.update({
+      donate: contribution.donate + amount
+    }, {
+      where: {
+        id: contributionId
+      }
+    })
     return res.status(201).json({
       success: true,
       message: 'Household added to contribution successfully'

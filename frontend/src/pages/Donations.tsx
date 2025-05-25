@@ -36,7 +36,7 @@ import { addUserToContribution } from "@/service/admin_v1";
 import Cookies from "js-cookie";
 import { useAuth } from "@/contexts/AuthContext";
 import { useContributionPayment } from "@/hooks/useHouseholds";
-
+import { useQueryClient } from "@tanstack/react-query";
 const contributionFormSchema = z.object({
   householdId: z.string({ required_error: "Vui lòng chọn căn hộ" }),
   contributionId: z.string({ required_error: "Vui lòng chọn chiến dịch" }),
@@ -56,7 +56,7 @@ const Donations = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
-
+  const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentContribution, setCurrentContribution] = useState<any>(null);
   const token = Cookies.get("accessToken");
@@ -99,7 +99,7 @@ const Donations = () => {
 
   const onSubmit = async (data: ContributionForm) => {
     try {
-      await addUserToContribution(
+      const response = await addUserToContribution(
         {
           householdId: data.householdId,
           contributionId: data.contributionId,
@@ -107,15 +107,25 @@ const Donations = () => {
         },
         token
       );
+      if (!response.success) {
+        toast({
+          title: "Lỗi",
+          description: response.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ['contributionPayment'] });
+      queryClient.invalidateQueries({ queryKey: ['contribution'] });
       toast({
         title: currentContribution ? "Đóng góp đã được cập nhật" : "Đóng góp mới đã được thêm",
-        description: `Thao tác với đóng góp của hộ thành công.`,
+        description: response.message,
       });
       setIsDialogOpen(false);
     } catch (error) {
       toast({
         title: "Lỗi",
-        description: "Không thể lưu đóng góp. Vui lòng thử lại sau.",
+        description: error instanceof Error ? error.message : "Không thể thực hiện thao tác",
         variant: "destructive",
       });
     }
