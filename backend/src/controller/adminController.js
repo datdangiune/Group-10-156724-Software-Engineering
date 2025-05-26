@@ -409,9 +409,7 @@ const getHouseholdActive = async (req, res) => {
 const addFeeUtilityHouseholdPerMonth = async (req, res) => { //Tạm thời fix cứng do UI
   const {
     householdId,
-    // feeServiceWaterId,
-    // feeServiceElectricId,
-    // feeServiceInternetId,
+
     water,
     electricity,
     internet
@@ -422,9 +420,6 @@ const addFeeUtilityHouseholdPerMonth = async (req, res) => { //Tạm thời fix 
 
   if (
     !householdId ||
-    // !feeServiceWaterId ||
-    // !feeServiceElectricId ||
-    // !feeServiceInternetId ||
     water == null ||
     electricity == null ||
     internet == null 
@@ -1529,6 +1524,9 @@ const deleteHousehold = async (req, res) => {
   await UserHousehold.destroy({
     where: { householdId },
   });
+  await Vehicle.destroy({
+    where: { householdId }
+  })
   await FeeHousehold.destroy({
     where: { householdId }
   });

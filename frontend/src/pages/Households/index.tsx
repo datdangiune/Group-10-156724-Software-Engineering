@@ -151,14 +151,22 @@ const Households = () => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleAddEdit(household)}>
-                          Chỉnh sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(household.householdId)}>
-                          Xóa
-                        </DropdownMenuItem>
+                      { user?.role === "admin" ? (
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleAddEdit(household)}>
+                            Chỉnh sửa
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(household.householdId)}>
+                            Xóa
+                          </DropdownMenuItem>
                       </DropdownMenuContent>
+                      ): (
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            Bạn không có quyền
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      )}
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
