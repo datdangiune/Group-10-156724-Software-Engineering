@@ -334,7 +334,8 @@ const getHouseholdUnactive = async (req, res) => {
       attributes: ['id', 'area'],
       where: {
         isActive: false
-      }
+      },
+      order: [['updatedAt', 'DESC']] 
     });
     if (!response) {
       return res.status(404).json({
@@ -1528,13 +1529,17 @@ const deleteHousehold = async (req, res) => {
   await UserHousehold.destroy({
     where: { householdId },
   });
+  await FeeHousehold.destroy({
+    where: { householdId }
+  });
+  const affectedRows = await Household.update(
+    { isActive: false },
+    { where: { id: householdId } }
+  );
+  console.log(affectedRows)
   await User.destroy({
     where:{ id: {[Op.in]: userIds}}
   });
-  await Household.update(
-    { isActive: false },                
-    { where: { id: householdId } }   
-  );
 
   return res.status(200).json({
     success: true,
