@@ -18,12 +18,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, MoreHorizontal } from "lucide-react";
 import { useUserINHouseholds } from "@/hooks/useHouseholds";
-import Cookies from "js-cookie";
+import { useAuth } from "@/contexts/AuthContext";
 const Residents = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useUserINHouseholds(page);
-
+  const { user } = useAuth();
   const residents = data?.data || [];
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
@@ -91,8 +91,19 @@ const Residents = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
-                        <DropdownMenuItem>Xóa</DropdownMenuItem>
+                        {user?.role === "admin" && (
+                          <>
+                            <DropdownMenuItem>
+                              Chỉnh sửa
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              Xóa
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        <DropdownMenuItem>
+                          Bạn không có quyền
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
