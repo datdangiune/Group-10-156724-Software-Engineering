@@ -36,4 +36,6 @@ route.get('/fee-summary', verifyToken, adminController.getFeeSummary)
 
 route.post('/addContributionPayment', verifyTokenKetoan, adminController.addHouseholdToContribution)
 route.get('/getContributionPayment', verifyToken, adminController.getContributionPayment)
+
+route.delete('/deleteHousehold', verifyTokenAdmin, adminController.deleteHousehold)
 module.exports = route

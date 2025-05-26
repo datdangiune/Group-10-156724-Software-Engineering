@@ -718,3 +718,28 @@ export async function getContributionPayment(accessToken: string): Promise<getCo
         }
     }
 }
+
+export async function deleteUserHousehold(accessToken: string, householdId: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const response = await axios.delete(`${url}/admin/deleteHousehold`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+            data: {
+                householdId
+            }
+        });
+        const data = response.data;
+        if (!data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+    
+}

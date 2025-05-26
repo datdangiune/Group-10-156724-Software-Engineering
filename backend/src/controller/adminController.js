@@ -1492,6 +1492,63 @@ const getContributionPayment = async (req, res) => {
     });
   }
 }
+const deleteHousehold = async (req, res) => {
+  const {householdId} = req.body;
+  if (!householdId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required field: householdId',
+    });
+  }
+  const isHousehold = await UserHousehold.findOne({
+    where: {
+      householdId: householdId
+    }
+  });
+  if (!isHousehold) {
+    return res.status(404).json({
+      success: false,
+      message: 'Household not found',
+    });
+  };
+  try {
+  const userInHousehold = await UserHousehold.findAll({
+    attributes: ['userId'],
+    where: {
+      householdId: householdId
+    }
+  });
+  if (userInHousehold.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: 'No users found in this household',
+    });
+  }
+  const userIds = userInHousehold.map(record => record.userId);
+  await UserHousehold.destroy({
+    where: { householdId },
+  });
+  await User.destroy({
+    where:{ id: {[Op.in]: userIds}}
+  });
+  await Household.update(
+    { isActive: false },                
+    { where: { id: householdId } }   
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: 'Household and associated users deleted successfully',
+  });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+}
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1521,5 +1578,5 @@ module.exports = {
   getUnpaidHouseholdDetails,
   addHouseholdToContribution,
   getContributionPayment,
-  
+  deleteHousehold
 };
