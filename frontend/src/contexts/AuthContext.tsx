@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Login } from "@/service/auth";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
+
 interface User {
   email: string;
   role: string;
@@ -15,12 +15,11 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
-interface UserDecoded {
-  email: string;
-  role: string;
-  fullname: string;
-  exp: number;
+
+interface UserDecoded extends User {
+  exp: number; 
 }
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -31,42 +30,53 @@ export const useAuth = () => {
   return context;
 };
 
+
+const isTokenValid = (token: string): boolean => {
+  try {
+    const decoded = jwtDecode<UserDecoded>(token);
+    return decoded.exp * 1000 > Date.now(); 
+  } catch {
+    return false;
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   useEffect(() => {
     const token = Cookies.get("accessToken");
-    console.log("Token from cookies:", token);
-    console.log(isAuthenticated)
-    if (token) {
+    if (token && isTokenValid(token)) {
       try {
-        const decodedToken: UserDecoded = jwtDecode(token);
-        setUser(decodedToken);
+        const decoded: UserDecoded = jwtDecode(token);
+        const { email, role, fullname } = decoded;
+        setUser({ email, role, fullname });
         setIsAuthenticated(true);
-      } catch (error) {
-        console.error("Invalid token:", error);
-        setUser(null);
-        setIsAuthenticated(false);
+      } catch (err) {
+        console.error("Error decoding token:", err);
+        logout();
       }
+    } else {
+      logout();
     }
   }, []);
-
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await Login(email, password);
-      console.log("Login response:", response);
-      if (response) {
-        const decodedToken: UserDecoded = jwtDecode(response.accessToken);
-        setUser(decodedToken);
-        Cookies.set("accessToken", response.accessToken);
+      if (response && response.accessToken) {
+        const token = response.accessToken;
+        const decoded: UserDecoded = jwtDecode(token);
+
+        Cookies.set("accessToken", token, { expires: 1 }); // optional: expires in 1 day
+        setUser({ email: decoded.email, role: decoded.role, fullname: decoded.fullname });
         setIsAuthenticated(true);
         return true;
       }
     } catch (error) {
       console.error("Login failed:", error);
-      return false;
     }
+    return false;
   };
 
   const logout = () => {
@@ -75,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticated(false);
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     isAuthenticated,
     login,

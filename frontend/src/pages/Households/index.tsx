@@ -16,33 +16,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
 import { Search, MoreHorizontal, Plus } from "lucide-react";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import Cookies from "js-cookie";
 import { AddHouseholdDialog } from "./AddHouseholdDialog";
 import { useHouseholds } from "@/hooks/useHouseholds";
+import { useAuth } from "@/contexts/AuthContext";
+import { deleteUserHousehold } from "@/service/admin_v1";
+import Cookies from "js-cookie";
+import { useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
 const Households = () => {
   const { toast } = useToast();
+  const accessToken = Cookies.get("accessToken");
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentHousehold, setCurrentHousehold] = useState<any>(null);
   const [page, setPage] = useState(1);
-  const { data, isLoading, error } = useHouseholds(page);
-
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { data, isLoading: isLoadingData, error } = useHouseholds(page);
+  const { user } = useAuth();
   const households = data?.data || [];
   const total = data?.totalHouseholds || 0;
   const totalPages = data?.totalPages || 1;
- 
+  const queryClient = useQueryClient();
 
   const filteredHouseholds = Array.isArray(households)
     ? households.filter(household =>
@@ -52,7 +50,7 @@ const Households = () => {
     : [];
 
 
-  if (isLoading) {
+  if (isLoadingData) {
     return <div>Đang tải dữ liệu...</div>;
   }
 
@@ -64,30 +62,51 @@ const Households = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    toast({
-      title: currentHousehold ? "Hộ gia đình đã được cập nhật" : "Hộ gia đình mới đã được thêm",
-      description: `Thao tác với căn hộ ${currentHousehold?.apartmentNumber || 'mới'} thành công.`,
-    });
-    setIsDialogOpen(false);
+
+  const handleDelete = async (id: string) => {
+    setDeleteId(id);
   };
 
-  const handleDelete = (id: string) => {
-    toast({
-      title: "Hộ gia đình đã được xóa",
-      description: "Dữ liệu hộ gia đình đã được xóa thành công.",
-    });
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setIsLoading(true);
+    try {
+      await deleteUserHousehold(accessToken, deleteId);
+      queryClient.invalidateQueries({queryKey: ["households"]});
+      queryClient.invalidateQueries({queryKey: ["userInHouseholds"]});  
+      queryClient.invalidateQueries({queryKey: ["householdUnactive"]});   
+      queryClient.invalidateQueries({queryKey: ["householdInuse"]}); 
+      queryClient.invalidateQueries({queryKey: ['vehicle']});
+      toast({
+        title: "Xóa hộ gia đình thành công",
+        description: "Hộ gia đình đã được xóa thành công.",
+      });
+      setDeleteId(null);
+    } catch (error) {
+      console.error("Xóa hộ gia đình thất bại:", error);
+      toast({
+        title: "Lỗi",
+        description: error instanceof Error ? error.message : "Không thể xóa hộ gia đình.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
     
-        
-        <Button onClick={() => handleAddEdit()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm hộ gia đình
-        </Button>
+        { user?.role === "admin" ? (
+          <Button onClick={() => handleAddEdit()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm hộ gia đình
+          </Button>
+        ) : (
+          null
+        )}
+ 
       </div>
       
       <Card>
@@ -133,14 +152,22 @@ const Households = () => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleAddEdit(household)}>
-                          Chỉnh sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(household.householdId)}>
-                          Xóa
-                        </DropdownMenuItem>
+                      { user?.role === "admin" ? (
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleAddEdit(household)}>
+                            Chỉnh sửa
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(household.householdId)}>
+                            Xóa
+                          </DropdownMenuItem>
                       </DropdownMenuContent>
+                      ): (
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            Bạn không có quyền
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      )}
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
@@ -187,6 +214,24 @@ const Households = () => {
         onOpenChange={setIsDialogOpen}
         household={currentHousehold}
       />
+
+      {/* Modal xác nhận xóa */}
+      <Dialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa hộ gia đình</DialogTitle>
+          </DialogHeader>
+          <div>Bạn có chắc chắn muốn xóa hộ gia đình này không? Thao tác này không thể hoàn tác.</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)} disabled={isLoading}>
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isLoading}>
+              {isLoading ? "Đang xóa..." : "Xóa"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -20,6 +20,7 @@ import {
     getFeeSummary,
 
     getUnpaidHouseholdDetails,
+    getContributionPayment
 
     getUserResidenceInfo, // <-- thêm import này
 } from "@/service/admin_v1";
@@ -534,6 +535,25 @@ export const useUnpaidHouseholdDetails = (month?: string) => {
     });
 }
 
+
+export const useContributionPayment = () => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['contributionPayment'],
+        queryFn: async () => {
+            try {
+                const response = await getContributionPayment(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+
+
+
+
 export const useUserResidenceInfo = (userId: string) => {
     const { toast } = useToast();
     const accessToken = Cookies.get("accessToken");
@@ -542,13 +562,7 @@ export const useUserResidenceInfo = (userId: string) => {
         queryFn: async () => {
             try {
                 const response = await getUserResidenceInfo(accessToken, userId);
-                if (!response.success) {
-                    toast({
-                        title: "Lỗi",
-                        description: response.message,
-                    });
-                }
-                return {
+                              return {
                     permanentResidence: response.permanentResidence,
                     temporaryResidence: response.temporaryResidence
                 };
@@ -560,6 +574,15 @@ export const useUserResidenceInfo = (userId: string) => {
             }
         },
         enabled: !!userId,
+                      return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu thanh toán quyên góp.",
+                });
+            }
+        },
+
         staleTime,
         gcTime,
     });

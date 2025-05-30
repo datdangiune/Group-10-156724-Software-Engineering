@@ -40,17 +40,6 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Translate fee type to Vietnamese
-// const translateFeeType = (type: string) => {
-//   const types: Record<string, string> = {
-//     "management": "Quản lý",
-//     "service": "Dịch vụ",
-//     "parking": "Đỗ xe",
-//     "utility": "Tiện ích",
-//     "donation": "Quyên góp"
-//   };
-//   return types[type] || type;
-// };
 
 const FeeTypes = () => {
   const { toast } = useToast();
@@ -138,9 +127,6 @@ const FeeTypes = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleAddEdit(fee)}>
                           Chỉnh sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(fee.id)}>
-                          Xóa
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

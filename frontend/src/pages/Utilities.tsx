@@ -44,6 +44,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useHouseholdActive } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -72,6 +73,7 @@ const utilityFormSchema = z.object({
 });
 type UtilityFormValues = z.infer<typeof utilityFormSchema>;
 const Utilities = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [month, setMonth] = useState(getCurrentMonth());
@@ -160,10 +162,12 @@ const Utilities = () => {
               Quản lý tiện ích và thu phí tiện ích
             </CardDescription>
           </div>
-          <Button onClick={() => handleAddEdit()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm dữ liệu tiện ích
-          </Button>
+          {user?.role === "ketoan" && (
+            <Button onClick={() => handleAddEdit()} className="flex items-center">
+              <Plus className="mr-2 h-4 w-4" />
+              Thêm tiện ích
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 mb-4">

@@ -43,7 +43,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useHouseholdUInuse, useVehicle } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
 import { useQueryClient } from "@tanstack/react-query";
-
+import { useAuth } from "@/contexts/AuthContext";
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -71,6 +71,7 @@ const Parking = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentVehicle, setCurrentVehicle] = useState<any>(null);
+  const { user } = useAuth();
   const accessToken = Cookies.get("accessToken");
   const { data: vehicles } = useVehicle();
   const queryClient = useQueryClient();
@@ -159,10 +160,15 @@ const Parking = () => {
               Quản lý phương tiện và thu phí gửi xe
             </CardDescription>
           </div>
-          <Button onClick={() => handleAddEdit()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm phương tiện
-          </Button>
+          { user?.role === "ketoan" ? (
+            <Button onClick={() => handleAddEdit()}>
+              <Plus className="mr-2 h-4 w-4" />
+              Thêm phương tiện
+            </Button>
+          ) : (
+            null
+          )}
+
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 mb-4">
@@ -235,89 +241,89 @@ const Parking = () => {
               {currentVehicle ? "Cập nhật dữ liệu phương tiện" : "Nhập dữ liệu phương tiện mới"}
             </DialogDescription>
           </DialogHeader>
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="householdId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Căn hộ</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn căn hộ" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {households?.map((household, id) => (
-                    <SelectItem key={id} value={household.id}>
-                      {household.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="householdId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Căn hộ</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn căn hộ" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {households?.map((household, id) => (
+                          <SelectItem key={id} value={household.id}>
+                            {household.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="plateNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Biển số xe</FormLabel>
-                <FormControl>
-                  <Input
-                    type="string"
-                    placeholder="Nhập biển số xe"
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  />
-                </FormControl>
-                <FormDescription>Biển số xe</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="plateNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Biển số xe</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="string"
+                          placeholder="Nhập biển số xe"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormDescription>Biển số xe</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="vehicleType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Loại phương tiện</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn loại phương tiện" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Xe máy">Xe máy</SelectItem>
-                    <SelectItem value="Ô tô">Ô tô</SelectItem>
-                    <SelectItem value="Xe đạp">Xe đạp</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                <FormField
+                  control={form.control}
+                  name="vehicleType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loại phương tiện</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn loại phương tiện" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Xe máy">Xe máy</SelectItem>
+                          <SelectItem value="Ô tô">Ô tô</SelectItem>
+                          <SelectItem value="Xe đạp">Xe đạp</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-            Hủy
-          </Button>
-          <Button type="submit">Lưu</Button>
-        </DialogFooter>
-      </form>
-    </Form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Hủy
+                </Button>
+                <Button type="submit">Lưu</Button>
+              </DialogFooter>
+            </form>
+          </Form>
   </DialogContent>
 </Dialog>
     </div>

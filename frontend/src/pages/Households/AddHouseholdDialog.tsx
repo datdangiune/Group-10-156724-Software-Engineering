@@ -37,6 +37,10 @@ import Cookies from "js-cookie";
 import { addHouseholdAndUser } from "@/service/admin_v1";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+function getCurrentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
 export const AddHouseholdDialog = ({ 
   open, 
   onOpenChange,     
@@ -44,6 +48,7 @@ export const AddHouseholdDialog = ({
 }: AddHouseholdDialogProps) => {
   const isEditing = !!household;
   const [activeTab, setActiveTab] = useState("apartment");
+  const month = getCurrentMonth()
   const [householdData, setHouseholdData] = useState<HouseholdData>({
     householdId: household?.id ? `RI${household.id}` : `RI${Math.floor(Math.random() * 10000)}`,
     owner: {
@@ -138,7 +143,9 @@ export const AddHouseholdDialog = ({
           });
           queryClient.invalidateQueries({queryKey: ["households"]});
           queryClient.invalidateQueries({queryKey: ["userInHouseholds"]});  
-          queryClient.invalidateQueries({queryKey: ["householdUnactive"]});    
+          queryClient.invalidateQueries({queryKey: ["householdUnactive"]});   
+          queryClient.invalidateQueries({queryKey: ["householdInuse"]}); 
+          queryClient.invalidateQueries({queryKey: ['householdActive', month]})
           onOpenChange(false);
       } else {
         toast({

@@ -1,6 +1,6 @@
 import axios from "axios";
 const url = 'http://localhost:3000/api/v1'
-type Household_User = {
+export type Household_User = {
     id: string;
     householdId: string;
     fullname: string;
@@ -649,6 +649,100 @@ export async function getUnpaidHouseholdDetails(accessToken: string, month?: str
   return response.data;
 }
 
+
+export interface addUserToContributions {
+    householdId: string;
+    contributionId: string;
+    amount: number;
+}
+interface addUserToContributionResponse {
+    success: boolean;
+    message: string;
+    error: string | null;
+}
+export async function addUserToContribution(data: addUserToContributions, accessToken: string): Promise<addUserToContributionResponse> {
+    try {
+        const response = await axios.post(`${url}/admin/addContributionPayment`, data, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        const result = response.data;
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+        return result;
+    } catch (error) {  
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+        
+    }
+}
+type contributionPayment = {
+    id: string;
+    householdId: string;
+    contributionId: string;
+    amount: number;
+    paymentDate: Date;
+    Contribution: {
+        name: string;
+    }
+}
+interface getContributionPaymentResponse {
+    success: boolean;
+    message: string;
+    data: contributionPayment[];
+    error: string | null;
+}
+export async function getContributionPayment(accessToken: string): Promise<getContributionPaymentResponse> {
+    try {
+        const response = await axios.get(`${url}/admin/getContributionPayment`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: getContributionPaymentResponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}
+
+export async function deleteUserHousehold(accessToken: string, householdId: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const response = await axios.delete(`${url}/admin/deleteHousehold`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+            data: {
+                householdId
+            }
+        });
+        const data = response.data;
+        if (!data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+    
+}
 // Lấy thông tin thường trú, tạm trú của user
 export interface UserResidenceInfoResponse {
   success: boolean;
@@ -663,3 +757,4 @@ export async function getUserResidenceInfo(accessToken: string, userId: string):
   });
   return response.data;
 }
+
