@@ -34,6 +34,14 @@ const User = sequelize.define('User', {
         allowNull: false,
         unique: true,
     },
+    permanentResidence: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    temporaryResidence: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
 }, {
     tableName: 'users',
     timestamps: true,

@@ -7,6 +7,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const cron = require('node-cron');
 const { autoCreateFeeHouseholdForNewMonth } = require('./controller/adminController');
+const { User } = require('./models/index'); // Thêm dòng này để lấy model User
 dotenv.config();
 const port = 3000;
 app.use(cors())
@@ -18,6 +19,19 @@ route(app)
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
+
+// Hàm chỉ drop và tạo lại bảng users
+async function syncUserTableOnly() {
+  try {
+    await User.sync({ force: true });
+    console.log('User table synced (dropped and recreated) successfully.');
+  } catch (err) {
+    console.error('Error syncing user table:', err);
+  }
+}
+
+// Gọi hàm này khi cần drop và tạo lại bảng users
+// syncUserTableOnly();
 
 sequelize.sync({force: false}) // Set force: true to drop and recreate the database
     .then(() => {

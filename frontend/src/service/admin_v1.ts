@@ -743,3 +743,18 @@ export async function deleteUserHousehold(accessToken: string, householdId: stri
     }
     
 }
+// Lấy thông tin thường trú, tạm trú của user
+export interface UserResidenceInfoResponse {
+  success: boolean;
+  message: string;
+  permanentResidence: string | null;
+  temporaryResidence: string | null;
+}
+
+export async function getUserResidenceInfo(accessToken: string, userId: string): Promise<UserResidenceInfoResponse> {
+  const response = await axios.get(`${url}/admin/user-residence/${userId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  return response.data;
+}
+

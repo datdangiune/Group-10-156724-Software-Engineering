@@ -21,6 +21,7 @@ import Reports from "./pages/Reports";
 import ApartmentFees from "./pages/ApartmentFees";
 import Account from "./pages/Account";
 import NotFoundPage from "./pages/NotFoundPage";
+import ResidentDetail from "./pages/ResidentDetail";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,8 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="households" element={<Households />} />
               <Route path="residents" element={<Residents />} />
+                            <Route path="residents/:id" element={<ResidentDetail />} />
+
               <Route path="fees" element={<FeeTypes />} />
               <Route path="monthly-fees" element={<MonthlyFees />} />
               <Route path="apartment-fees" element={<ApartmentFees />} />

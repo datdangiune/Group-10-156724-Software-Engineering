@@ -1389,6 +1389,7 @@ const getUnpaidHouseholdDetails = async (req, res) => {
     });
   }
 };
+
 const addHouseholdToContribution = async (req, res) => {
   const {contributionId, householdId, amount} = req.body;
   if (!contributionId || !householdId || !amount) {
@@ -1477,12 +1478,11 @@ const getContributionPayment = async (req, res) => {
     }
     res.status(200).json({
       success: true,
-      message: 'Get contribution payment successfully',
-      data: response
     });
   } catch (error) {
     res.status(500).json({
       success: false,
+
       message: 'Internal server error',
       error: error.message
     });
@@ -1551,7 +1551,38 @@ const deleteHousehold = async (req, res) => {
       error: error.message,
     });
   }
-}
+}      
+      
+      
+// Lấy thông tin đăng ký hộ khẩu: Thường trú, Tạm trú
+const getUserResidenceInfo = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required param: userId"
+      });
+    }
+    const user = await User.findByPk(userId, {
+      attributes: ['permanentResidence', 'temporaryResidence']
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      message: "Get user residence info successfully",
+      permanentResidence: user.permanentResidence,
+      temporaryResidence: user.temporaryResidence
+      message: 'Get contribution payment successfully',
+      data: response
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1578,8 +1609,12 @@ module.exports = {
   getTotalHouseholds,
   getUnpaidHouseholds,
   getFeeSummary,
+
+  getUserResidenceInfo,
+
   getUnpaidHouseholdDetails,
   addHouseholdToContribution,
   getContributionPayment,
   deleteHousehold
+
 };

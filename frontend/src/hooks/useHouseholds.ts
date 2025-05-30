@@ -22,6 +22,7 @@ import {
     getUnpaidHouseholdDetails,
     getContributionPayment
 
+    getUserResidenceInfo, // <-- thêm import này
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
@@ -533,6 +534,8 @@ export const useUnpaidHouseholdDetails = (month?: string) => {
         gcTime,
     });
 }
+
+
 export const useContributionPayment = () => {
     const { toast } = useToast();
     const accessToken = Cookies.get("accessToken");
@@ -547,7 +550,31 @@ export const useContributionPayment = () => {
                         description: response.message,
                     });
                 }
-                return response.data;
+
+
+
+
+export const useUserResidenceInfo = (userId: string) => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['userResidenceInfo', userId],
+        queryFn: async () => {
+            try {
+                const response = await getUserResidenceInfo(accessToken, userId);
+                              return {
+                    permanentResidence: response.permanentResidence,
+                    temporaryResidence: response.temporaryResidence
+                };
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải thông tin hộ khẩu.",
+                });
+            }
+        },
+        enabled: !!userId,
+                      return response.data;
             } catch (error) {
                 toast({
                     title: "Lỗi",
@@ -555,6 +582,7 @@ export const useContributionPayment = () => {
                 });
             }
         },
+
         staleTime,
         gcTime,
     });
