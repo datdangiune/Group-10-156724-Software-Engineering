@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import { 
   Card, 
   CardContent, 
@@ -20,6 +22,7 @@ import { Search, MoreHorizontal } from "lucide-react";
 import { useUserINHouseholds } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
 const Residents = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useUserINHouseholds(page);
@@ -40,7 +43,11 @@ const Residents = () => {
         resident.fullname?.toLowerCase().includes(searchTerm.toLowerCase())
       ) 
     : [];
-
+    
+  const handleResidentClick = (residentId: number) => {
+    navigate(`/residents/${residentId}`);
+  };
+  
   return (
     <div className="space-y-6">
       <Card>
@@ -91,6 +98,9 @@ const Residents = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/residents/${resident.userId}`)}>
+                          Xem chi tiết
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
                         <DropdownMenuItem>Xóa</DropdownMenuItem>
                       </DropdownMenuContent>

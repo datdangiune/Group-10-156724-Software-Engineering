@@ -1270,6 +1270,39 @@ const getUnpaidHouseholdDetails = async (req, res) => {
     });
   }
 };
+// Lấy thông tin đăng ký hộ khẩu: Thường trú, Tạm trú
+const getUserResidenceInfo = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required param: userId"
+      });
+    }
+    const user = await User.findByPk(userId, {
+      attributes: ['permanentResidence', 'temporaryResidence']
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Get user residence info successfully",
+      permanentResidence: user.permanentResidence,
+      temporaryResidence: user.temporaryResidence
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
 
 module.exports = {
   getHouseholdUsersInfo,
@@ -1300,5 +1333,6 @@ module.exports = {
   getUnpaidHouseholds,
   getFeeSummary,
 
-  getUnpaidHouseholdDetails
+  getUnpaidHouseholdDetails,
+  getUserResidenceInfo
 };

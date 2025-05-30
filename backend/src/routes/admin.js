@@ -33,5 +33,6 @@ route.get('/total-households', verifyTokenAdmin, adminController.getTotalHouseho
 route.get('/unpaid-households', verifyTokenAdmin, adminController.getUnpaidHouseholds)
 route.get('/unpaid-household-details', verifyTokenAdmin, adminController.getUnpaidHouseholdDetails)
 route.get('/fee-summary', verifyTokenAdmin, adminController.getFeeSummary)
+route.get('/user-residence/:userId', verifyTokenAdmin, adminController.getUserResidenceInfo)
 
 module.exports = route

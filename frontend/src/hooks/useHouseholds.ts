@@ -21,6 +21,7 @@ import {
 
     getUnpaidHouseholdDetails,
 
+    getUserResidenceInfo, // <-- thêm import này
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
@@ -528,6 +529,37 @@ export const useUnpaidHouseholdDetails = (month?: string) => {
                 });
             }
         },
+        staleTime,
+        gcTime,
+    });
+}
+
+export const useUserResidenceInfo = (userId: string) => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['userResidenceInfo', userId],
+        queryFn: async () => {
+            try {
+                const response = await getUserResidenceInfo(accessToken, userId);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return {
+                    permanentResidence: response.permanentResidence,
+                    temporaryResidence: response.temporaryResidence
+                };
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải thông tin hộ khẩu.",
+                });
+            }
+        },
+        enabled: !!userId,
         staleTime,
         gcTime,
     });
