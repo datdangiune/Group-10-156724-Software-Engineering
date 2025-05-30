@@ -20,7 +20,7 @@ import {
     getFeeSummary,
 
     getUnpaidHouseholdDetails,
-    getContributionPayment
+    getContributionPayment,
 
     getUserResidenceInfo, // <-- thêm import này
 } from "@/service/admin_v1";
@@ -550,9 +550,19 @@ export const useContributionPayment = () => {
                         description: response.message,
                     });
                 }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu thanh toán quyên góp.",
+                });
+            }
+        },
 
-
-
+        staleTime,
+        gcTime,
+    });
+}
 
 export const useUserResidenceInfo = (userId: string) => {
     const { toast } = useToast();
@@ -562,7 +572,7 @@ export const useUserResidenceInfo = (userId: string) => {
         queryFn: async () => {
             try {
                 const response = await getUserResidenceInfo(accessToken, userId);
-                              return {
+                return {
                     permanentResidence: response.permanentResidence,
                     temporaryResidence: response.temporaryResidence
                 };
@@ -571,18 +581,13 @@ export const useUserResidenceInfo = (userId: string) => {
                     title: "Lỗi",
                     description: "Không thể tải thông tin hộ khẩu.",
                 });
+                return {
+                    permanentResidence: null,
+                    temporaryResidence: null
+                };
             }
         },
         enabled: !!userId,
-                      return response.data;
-            } catch (error) {
-                toast({
-                    title: "Lỗi",
-                    description: "Không thể tải dữ liệu thanh toán quyên góp.",
-                });
-            }
-        },
-
         staleTime,
         gcTime,
     });
