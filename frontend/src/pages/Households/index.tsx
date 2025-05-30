@@ -76,6 +76,7 @@ const Households = () => {
       queryClient.invalidateQueries({queryKey: ["userInHouseholds"]});  
       queryClient.invalidateQueries({queryKey: ["householdUnactive"]});   
       queryClient.invalidateQueries({queryKey: ["householdInuse"]}); 
+      queryClient.invalidateQueries({queryKey: ['vehicle']});
       toast({
         title: "Xóa hộ gia đình thành công",
         description: "Hộ gia đình đã được xóa thành công.",
