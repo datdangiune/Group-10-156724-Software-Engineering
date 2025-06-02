@@ -29,15 +29,22 @@ import {
   Settings, 
   LogOut,
   User,
-  Home
+  Home,
+  MapPin,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface NavItem {
   title: string;
-  icon: React.ComponentType;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   path: string;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
 }
 
 const DashboardLayout = () => {
@@ -46,24 +53,68 @@ const DashboardLayout = () => {
   const { logout } = useAuth();
   const [search, setSearch] = useState("");
   
-  const navItems: NavItem[] = [
+  // Mock user role - in real app this would come from auth context
+  type UserRole = "area_leader" | "accounting";
+  // Change the value here to "area_leader" or "accounting" to test
+  const [userRole] = useState<UserRole>("area_leader");
+  
+  const standaloneItems: NavItem[] = [
     { title: "Tổng quan", icon: LayoutDashboard, path: "/" },
-    { title: "Quản lý hộ gia đình", icon: Users, path: "/households" },
-    { title: "Quản lý cư dân", icon: User, path: "/residents" },
-    { title: "Cấu hình phí", icon: FileText, path: "/fees" },
-    { title: "Thu phí hàng tháng", icon: Calendar, path: "/monthly-fees" },
-    { title: "Phí theo căn hộ", icon: Home, path: "/apartment-fees" },
-    { title: "Tiện ích", icon: Droplets, path: "/utilities" },
-    { title: "Quản lý bãi đỗ xe", icon: Car, path: "/parking" },
-    { title: "Chiến dịch quyên góp", icon: Heart, path: "/campaigns" },
-    { title: "Đóng góp", icon: Heart, path: "/donations" },
-    { title: "Báo cáo thống kê", icon: FileText, path: "/reports" },
+  ];
+
+  const areaLeaderGroup: NavGroup = {
+    title: "Nhóm Trưởng khu vực",
+    items: [
+      { title: "Quản lý hộ gia đình", icon: Users, path: "/households" },
+      { title: "Quản lý cư dân", icon: User, path: "/residents" },
+      { title: "Quản lý nơi ở", icon: MapPin, path: "/residence" },
+      { title: "Cấu hình phí", icon: FileText, path: "/fees" },
+      { title: "Thu phí hàng tháng", icon: Calendar, path: "/monthly-fees" },
+      { title: "Phí theo căn hộ", icon: Home, path: "/apartment-fees" },
+      { title: "Tiện ích", icon: Droplets, path: "/utilities" },
+      { title: "Quản lý bãi đỗ xe", icon: Car, path: "/parking" },
+      { title: "Đóng góp", icon: Heart, path: "/donations" },
+    ]
+  };
+
+  const accountingGroup: NavGroup = {
+    title: "Nhóm Kế toán",
+    items: [
+      { title: "Chiến dịch quyên góp", icon: Heart, path: "/campaigns" },
+      { title: "Báo cáo thống kê", icon: FileText, path: "/reports" },
+      { title: "Quản lý bãi đỗ xe (Toàn quyền)", icon: Car, path: "/parking-full" },
+    ]
+  };
+
+  const bottomItems: NavItem[] = [
+    { title: "Phản hồi cư dân", icon: MessageSquare, path: "/feedback" },
     { title: "Cài đặt tài khoản", icon: Settings, path: "/account" },
+  ];
+
+  const getVisibleGroups = () => {
+    const groups = [];
+    
+    if (userRole === "area_leader") {
+      groups.push(areaLeaderGroup);
+    }
+    
+    if (userRole === "accounting") {
+      groups.push(accountingGroup);
+    }
+    
+    return groups;
+  };
+
+  const allNavItems = [
+    ...standaloneItems,
+    ...areaLeaderGroup.items,
+    ...accountingGroup.items,
+    ...bottomItems
   ];
 
   const getCurrentPageTitle = () => {
     const currentPath = location.pathname;
-    const currentItem = navItems.find(item => item.path === currentPath);
+    const currentItem = allNavItems.find(item => item.path === currentPath);
     return currentItem ? currentItem.title : "BlueMoon";
   };
 
@@ -128,11 +179,52 @@ const DashboardLayout = () => {
             </div>
           </SidebarHeader>
           <SidebarContent>
+            {/* Standalone items */}
             <SidebarGroup>
-              <SidebarGroupLabel>Quản lý</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {navItems.map((item) => (
+                  {standaloneItems.map((item) => (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton 
+                        isActive={location.pathname === item.path} 
+                        onClick={() => handleNavigation(item.path)}
+                      >
+                        <item.icon className="size-4 mr-2" />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Role-based groups */}
+            {getVisibleGroups().map((group) => (
+              <SidebarGroup key={group.title}>
+                <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {group.items.map((item) => (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton 
+                          isActive={location.pathname === item.path} 
+                          onClick={() => handleNavigation(item.path)}
+                        >
+                          <item.icon className="size-4 mr-2" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+
+            {/* Bottom items */}
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {bottomItems.map((item) => (
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton 
                         isActive={location.pathname === item.path} 
@@ -155,7 +247,9 @@ const DashboardLayout = () => {
                   <AvatarFallback>QT</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium">Quản Trị Viên</span>
+                  <span className="text-sm font-medium">
+                    {userRole === "accounting" ? "Kế toán viên" : "Trưởng khu vực"}
+                  </span>
                   <span className="text-xs text-muted-foreground">admin@bluemoon.com</span>
                 </div>
               </div>
