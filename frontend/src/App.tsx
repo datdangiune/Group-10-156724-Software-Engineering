@@ -23,7 +23,7 @@ import Account from "./pages/Account";
 import NotFoundPage from "./pages/NotFoundPage";
 import ResidentDetail from "./pages/ResidentDetail";
 import ResidenceManagement from "./pages/ResidenceManagement";
-import ParkingFull from "./pages/ParkingFull";
+
 import ResidentFeedback from "./pages/ResidentFeedback";
 
 const queryClient = new QueryClient();
@@ -47,7 +47,6 @@ const App = () => (
               <Route path="residents" element={<Residents />} />
               <Route path="residents/:id" element={<ResidentDetail />} />
               <Route path="residence" element={<ResidenceManagement />} />
-              <Route path="parking-full" element={<ParkingFull />} />
               <Route path="feedback" element={<ResidentFeedback />} />
 
               <Route path="fees" element={<FeeTypes />} />

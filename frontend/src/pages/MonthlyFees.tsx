@@ -97,7 +97,7 @@ const MonthlyFees = () => {
             {user?.role === 'ketoan' && (
               <Button onClick={handleAutoAdd} className="ml-auto">
                 <Plus className="mr-2 h-4 w-4" />
-                Tự động thu phí
+                Tính phí hàng tháng
               </Button>
             )}
 

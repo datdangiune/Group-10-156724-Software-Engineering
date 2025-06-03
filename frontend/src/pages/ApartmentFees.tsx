@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -25,6 +24,7 @@ import { useGetAllFeeOfHousehold } from "@/hooks/useHouseholds";
 import { updatePayment } from "@/service/admin_v1";
 import { useQueryClient } from "@tanstack/react-query";
 import Cookies from "js-cookie";
+import { useAuth } from "@/contexts/AuthContext";
 // Format Vietnamese currency
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -37,7 +37,8 @@ const formatCurrency = (value: number) => {
 const ApartmentFees = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const token =  Cookies.get('accessToken')
+  const token =  Cookies.get('accessToken');
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("");
   const [month, setMonth] = useState("2025-05"); // Default to current month
@@ -212,24 +213,26 @@ const ApartmentFees = () => {
                           : '-'}
                       </TableCell>
                       <TableCell>
-                        {fee.status === 'pending' ? (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleStatusChange(fee.id)}
-                            disabled={loading}
-                          >
-                            {loading  ? 'Đang xử lý...' : 'Đánh dấu đã thu'}
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            disabled
-                          >
-                            Thu thành công
-                          </Button>
-                        )}
+                        {user?.role === 'ketoan' ? (
+                          fee.status === 'pending' ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleStatusChange(fee.id)}
+                              disabled={loading}
+                            >
+                              {loading  ? 'Đang xử lý...' : 'Đánh dấu đã thu'}
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              disabled
+                            >
+                              Thu thành công
+                            </Button>
+                          )
+                        ) : null}
                       </TableCell>
 
                     </TableRow>

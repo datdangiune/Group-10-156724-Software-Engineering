@@ -1484,6 +1484,8 @@ const getContributionPayment = async (req, res) => {
     }
     res.status(200).json({
       success: true,
+      message: 'Get contribution payment successfully',
+      data: response
     });
   } catch (error) {
     res.status(500).json({

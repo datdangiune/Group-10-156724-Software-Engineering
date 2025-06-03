@@ -52,11 +52,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const { logout } = useAuth();
   const [search, setSearch] = useState("");
-  
-  // Mock user role - in real app this would come from auth context
-  type UserRole = "area_leader" | "accounting";
-  // Change the value here to "area_leader" or "accounting" to test
-  const [userRole] = useState<UserRole>("area_leader");
+  const {user} = useAuth();
   
   const standaloneItems: NavItem[] = [
     { title: "Tổng quan", icon: LayoutDashboard, path: "/" },
@@ -68,10 +64,7 @@ const DashboardLayout = () => {
       { title: "Quản lý hộ gia đình", icon: Users, path: "/households" },
       { title: "Quản lý cư dân", icon: User, path: "/residents" },
       { title: "Quản lý nơi ở", icon: MapPin, path: "/residence" },
-      { title: "Cấu hình phí", icon: FileText, path: "/fees" },
-      { title: "Thu phí hàng tháng", icon: Calendar, path: "/monthly-fees" },
       { title: "Phí theo căn hộ", icon: Home, path: "/apartment-fees" },
-      { title: "Tiện ích", icon: Droplets, path: "/utilities" },
       { title: "Quản lý bãi đỗ xe", icon: Car, path: "/parking" },
       { title: "Đóng góp", icon: Heart, path: "/donations" },
     ]
@@ -80,9 +73,14 @@ const DashboardLayout = () => {
   const accountingGroup: NavGroup = {
     title: "Nhóm Kế toán",
     items: [
+      { title: "Cấu hình phí", icon: FileText, path: "/fees" },
+      { title: "Thu phí hàng tháng", icon: Calendar, path: "/monthly-fees" },
+      { title: "Phí theo căn hộ", icon: Home, path: "/apartment-fees" },
+      { title: "Tiện ích", icon: Droplets, path: "/utilities" },
       { title: "Chiến dịch quyên góp", icon: Heart, path: "/campaigns" },
       { title: "Báo cáo thống kê", icon: FileText, path: "/reports" },
-      { title: "Quản lý bãi đỗ xe (Toàn quyền)", icon: Car, path: "/parking-full" },
+      { title: "Quản lý bãi đỗ xe (Toàn quyền)", icon: Car, path: "/parking" },
+      { title: "Đóng góp", icon: Heart, path: "/donations" },
     ]
   };
 
@@ -94,11 +92,11 @@ const DashboardLayout = () => {
   const getVisibleGroups = () => {
     const groups = [];
     
-    if (userRole === "area_leader") {
+    if (user.role === "admin") {
       groups.push(areaLeaderGroup);
     }
     
-    if (userRole === "accounting") {
+    if (user.role === "ketoan") {
       groups.push(accountingGroup);
     }
     
@@ -170,12 +168,7 @@ const DashboardLayout = () => {
               </div>
             </div>
             <div className="p-4">
-              <Input
-                placeholder="Tìm kiếm..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-muted/50"
-              />
+
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -204,7 +197,7 @@ const DashboardLayout = () => {
                 <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {group.items.map((item) => (
+                    {group.items.map((item: any) => (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton 
                           isActive={location.pathname === item.path} 
@@ -248,7 +241,7 @@ const DashboardLayout = () => {
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">
-                    {userRole === "accounting" ? "Kế toán viên" : "Trưởng khu vực"}
+                    {user.role === "ketoan" ? "Kế toán viên" : "Trưởng khu vực"}
                   </span>
                   <span className="text-xs text-muted-foreground">admin@bluemoon.com</span>
                 </div>
