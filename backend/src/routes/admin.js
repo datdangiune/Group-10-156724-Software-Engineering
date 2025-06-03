@@ -41,4 +41,12 @@ route.get('/getContributionPayment', verifyToken, adminController.getContributio
 route.get('/address', verifyToken, adminController.getAddressUser)
 route.delete('/deleteHousehold', verifyTokenAdmin, adminController.deleteHousehold)
 route.post('/import-fees', verifyTokenKetoan,upload.single('file'), adminController.importFeeFromExcel);
+
+
+route.post('/reportUser', verifyToken, adminController.createReportUser)
+route.get('/getReportUser', verifyToken, adminController.getReportUser)
+route.put('/updateReportUser', verifyToken, adminController.updateReportUserResponse)
+route.put('/updateReportUserStatusInProgress', verifyToken, adminController.updateReportUserStatusInProgress)
+route.put('/updateReportUserStatusResolved', verifyToken, adminController.updateReportUserStatusResolved)
+
 module.exports = route

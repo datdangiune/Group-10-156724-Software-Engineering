@@ -33,7 +33,12 @@ const formatCurrency = (value: number) => {
     minimumFractionDigits: 0
   }).format(value);
 };
-
+const getCurrentMonth = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Thêm số 0 nếu tháng < 10
+  return `${year}-${month}`;
+};
 const ApartmentFees = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -41,7 +46,7 @@ const ApartmentFees = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("");
-  const [month, setMonth] = useState("2025-05"); // Default to current month
+  const [month, setMonth] = useState(getCurrentMonth());
   const [selectedApartment, setSelectedApartment] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: dataHousehold} = useGetAllFeeOfHousehold(month);

@@ -6,6 +6,7 @@ const FeeService = require('./feeService');
 const FeeHousehold = require('./FeeHousehold');
 const Contribution = require('./Contribution');
 const ContributionPayment = require('./ContributionPayment');
+const ReportUser = require('./ReportUser'); // Thêm dòng này
 
 
 // User - UserHousehold - Household
@@ -32,7 +33,12 @@ ContributionPayment.belongsTo(Contribution, { foreignKey: 'contributionId' });
 Household.hasMany(ContributionPayment, { foreignKey: 'householdId' });
 ContributionPayment.belongsTo(Household, { foreignKey: 'householdId' });
 
+// ReportUser - User - Household
+ReportUser.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(ReportUser, { foreignKey: 'userId' });
 
+ReportUser.belongsTo(Household, { foreignKey: 'householdId' });
+Household.hasMany(ReportUser, { foreignKey: 'householdId' });
 
 
 
@@ -45,5 +51,6 @@ module.exports = {
   FeeService,
   FeeHousehold,
   Contribution,
-  ContributionPayment
+  ContributionPayment,
+  ReportUser // Thêm dòng này
 };

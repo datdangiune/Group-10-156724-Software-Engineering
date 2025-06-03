@@ -793,7 +793,7 @@ export async function getAddress(accessToken: string): Promise<AddressResponse> 
         }
     }
 }
-
+    
 /**
  * Gửi file .xlsx lên server để import phí tiện ích qua API /admin/import-fees
  * @param accessToken Token xác thực
@@ -823,4 +823,155 @@ export async function importFeeFromExcel(accessToken: string, file: File | Blob)
             throw new Error('An unknown error occurred');
         }
     }
+}
+
+export interface ReportUserItem {
+  id: string;
+  userId: string;
+  householdId: string;
+  topic: string;
+  status: string;
+  content: string;
+  response?: string;
+  createdAt: string;
+  updatedAt: string;
+  User?: {
+    fullname: string;
+  };
+  Household?: {
+    id: string;
+  };
+}
+
+export interface GetReportUserResponse {
+  success: boolean;
+  message: string;
+  data: ReportUserItem[];
+}
+
+export async function getReportUser(accessToken: string): Promise<GetReportUserResponse> {
+  try {
+    const response = await axios.get(`${url}/admin/getReportUser`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const data: GetReportUserResponse = response.data;
+    if (!data.success) throw new Error(data.message);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+/**
+ * Gửi phản hồi/báo cáo/góp ý (không có trường type)
+ */
+export async function createReportUserWithType(
+  accessToken: string,
+  data: { userId: string; householdId: string; topic: string; content: string }
+): Promise<any> {
+  try {
+    const response = await axios.post(
+      `${url}/admin/reportUser`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+/**
+ * Cập nhật phản hồi (response) cho ReportUser
+ */
+export async function updateReportUserResponse(
+  accessToken: string,
+  data: { id: string; response: string }
+): Promise<any> {
+  try {
+    const response = await axios.put(
+      `${url}/admin/updateReportUser`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+/**
+ * Cập nhật trạng thái reportUser sang "Đang xử lý"
+ */
+export async function updateReportUserStatusInProgress(
+  accessToken: string,
+  id: string
+): Promise<any> {
+  try {
+    const response = await axios.put(
+      `${url}/admin/updateReportUserStatusInProgress`,
+      { id },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
+}
+
+/**
+ * Cập nhật trạng thái reportUser sang "Đã giải quyết"
+ */
+export async function updateReportUserStatusResolved(
+  accessToken: string,
+  id: string
+): Promise<any> {
+  try {
+    const response = await axios.put(
+      `${url}/admin/updateReportUserStatusResolved`,
+      { id },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'An error occurred');
+    } else {
+      throw new Error('An unknown error occurred');
+    }
+  }
 }

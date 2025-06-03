@@ -23,7 +23,8 @@ import {
     getContributionPayment,
 
     getUserResidenceInfo, 
-    getAddress
+    getAddress,
+    getReportUser
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
@@ -612,5 +613,32 @@ export const useAddress = (addressId: string) => {
         enabled: !!addressId,
         staleTime,
         gcTime,
+    });
+}
+
+export const useReportUser = () => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['reportUser'],
+        queryFn: async () => {
+            try {
+                const response = await getReportUser(accessToken);
+                if (!response.success) {
+                    toast({
+                        title: "Lỗi",
+                        description: response.message,
+                    });
+                }
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải dữ liệu phản hồi cư dân.",
+                });
+            }
+        },
+        staleTime: staleTime,
+        gcTime: gcTime,
     });
 }

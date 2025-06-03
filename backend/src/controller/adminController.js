@@ -1,4 +1,4 @@
-const { Household, UserHousehold, User, FeeService,  FeeHousehold, Contribution, ContributionPayment, Vehicle} = require('../models/index');
+const { Household, UserHousehold, User, FeeService,  FeeHousehold, Contribution, ContributionPayment, Vehicle, ReportUser } = require('../models/index');
 const { Op } = require('sequelize');
 const xlsx = require('xlsx');
 const getHouseholdUsersInfo = async (req, res) => {
@@ -1726,6 +1726,178 @@ const importFeeFromExcel = async (req, res) => {
   }
 };
 
+// Tạo bản ghi ReportUser
+const createReportUser = async (req, res) => {
+  try {
+    const { userId, householdId, topic, content } = req.body;
+    if (!userId || !householdId || !topic || !content) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: userId, householdId, topic, content"
+      });
+    }
+
+    // Kiểm tra user và household tồn tại (optional, có thể bỏ qua nếu không cần)
+    const user = await User.findByPk(userId);
+    const household = await Household.findByPk(householdId);
+    if (!user || !household) {
+      return res.status(404).json({
+        success: false,
+        message: "User or Household not found"
+      });
+    }
+
+    const report = await ReportUser.create({
+      userId,
+      householdId,
+      topic,
+      content,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Report created successfully",
+      data: report
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+
+// Lấy danh sách reportUser
+const getReportUser = async (req, res) => {
+  try {
+    const reports = await ReportUser.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ['fullname']
+        },
+        {
+          model: Household,
+          attributes: ['id']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    return res.status(200).json({
+      success: true,
+      message: "Get report users successfully",
+      data: reports
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+// Cập nhật phản hồi (response) cho ReportUser
+const updateReportUserResponse = async (req, res) => {
+  try {
+    const { id, response } = req.body;
+    if (!id || typeof response !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: id, response"
+      });
+    }
+
+    const report = await ReportUser.findByPk(id);
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "ReportUser not found"
+      });
+    }
+
+    await report.update({ response });
+
+    return res.status(200).json({
+      success: true,
+      message: "Update response successfully",
+      data: report
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+// Cập nhật trạng thái reportUser sang "Đang xử lý"
+const updateReportUserStatusInProgress = async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: id"
+      });
+    }
+    const report = await ReportUser.findByPk(id);
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "ReportUser not found"
+      });
+    }
+    await report.update({ status: "Đang xử lý" });
+    return res.status(200).json({
+      success: true,
+      message: "Status updated to Đang xử lý",
+      data: report
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+// Cập nhật trạng thái reportUser sang "Đã giải quyết"
+const updateReportUserStatusResolved = async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: id"
+      });
+    }
+    const report = await ReportUser.findByPk(id);
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "ReportUser not found"
+      });
+    }
+    await report.update({ status: "Đã giải quyết" });
+    return res.status(200).json({
+      success: true,
+      message: "Status updated to Đã giải quyết",
+      data: report
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1760,6 +1932,11 @@ module.exports = {
   getContributionPayment,
   deleteHousehold,
   getAddressUser,
-  importFeeFromExcel
+  importFeeFromExcel,
+  createReportUser,
+  getReportUser,
+  updateReportUserResponse,
+  updateReportUserStatusInProgress,
+  updateReportUserStatusResolved
 
 };

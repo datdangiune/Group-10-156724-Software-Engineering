@@ -5,9 +5,9 @@ const route = require('./routes/index');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const cron = require('node-cron');
-const { autoCreateFeeHouseholdForNewMonth } = require('./controller/adminController');
-const { User } = require('./models/index'); // Thêm dòng này để lấy model User
+
+const ReportUser = require('./models/ReportUser');
+
 dotenv.config();
 const port = 3000;
 app.use(cors())
@@ -20,10 +20,10 @@ app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-// Hàm chỉ drop và tạo lại bảng users
+// // Hàm chỉ drop và tạo lại bảng users
 // async function syncUserTableOnly() {
 //   try {
-//     await User.sync({ force: true });
+//     await ReportUser.sync({ force: true });
 //     console.log('User table synced (dropped and recreated) successfully.');
 //   } catch (err) {
 //     console.error('Error syncing user table:', err);

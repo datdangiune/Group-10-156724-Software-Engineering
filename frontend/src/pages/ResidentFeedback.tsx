@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,47 +12,93 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Search, MoreHorizontal, MessageSquare, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import Cookies from "js-cookie";
+import { useAuth } from "@/contexts/AuthContext";
+import axios from "axios";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { getHousehold, getUserInHousehold, createReportUserWithType, updateReportUserResponse, updateReportUserStatusInProgress, updateReportUserStatusResolved } from "@/service/admin_v1";
+import { useReportUser } from "@/hooks/useHouseholds";
 
-// Mock data for feedback
-const mockFeedback = [
-  {
-    id: 1,
-    residentName: "Nguyễn Văn An",
-    apartment: "A1201",
-    subject: "Vấn đề về thang máy",
-    message: "Thang máy số 2 thường xuyên bị hỏng, mong ban quản lý sửa chữa sớm.",
-    status: "pending",
-    createdAt: "2024-01-15T10:30:00Z",
-    response: null
-  },
-  {
-    id: 2,
-    residentName: "Trần Thị Mai",
-    apartment: "B0502",
-    subject: "Góp ý về khu vui chơi trẻ em",
-    message: "Khu vui chơi trẻ em cần được bảo trì và bổ sung thêm thiết bị an toàn.",
-    status: "resolved",
-    createdAt: "2024-01-10T14:20:00Z",
-    response: "Cảm ơn góp ý. Chúng tôi đã lên kế hoạch bảo trì khu vui chơi trong tháng này."
-  },
-  {
-    id: 3,
-    residentName: "Lê Văn Hùng",
-    apartment: "C0703",
-    subject: "Tiếng ồn từ tầng trên",
-    message: "Căn hộ tầng trên thường xuyên gây tiếng ồn vào ban đêm, ảnh hưởng đến giấc ngủ.",
-    status: "in_progress",
-    createdAt: "2024-01-12T20:15:00Z",
-    response: "Chúng tôi đã liên hệ với cư dân tầng trên và đang theo dõi tình hình."
-  }
-];
+import { useQueryClient } from "@tanstack/react-query";
 
 const ResidentFeedback = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [responseText, setResponseText] = useState("");
-  const [respondingTo, setRespondingTo] = useState<number | null>(null);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newFeedback, setNewFeedback] = useState({
+    householdId: "",
+    userId: "",
+    topic: "",
+    content: "",
+  });
+  const [households, setHouseholds] = useState<any[]>([]);
+  const [usersInHousehold, setUsersInHousehold] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const { data: reportUserData, isLoading: isLoadingReportUser } = useReportUser();
 
-  const filteredFeedback = mockFeedback.filter(feedback =>
+  // Lấy danh sách căn hộ khi mở dialog
+  useEffect(() => {
+    if (isDialogOpen) {
+      const fetchHouseholds = async () => {
+        try {
+          const accessToken = Cookies.get("accessToken");
+          const res = await getHousehold(accessToken, 1);
+          setHouseholds(res.data || []);
+        } catch {
+          setHouseholds([]);
+        }
+      };
+      fetchHouseholds();
+    }
+  }, [isDialogOpen]);
+
+  // Lấy user trong căn hộ khi chọn householdId
+  useEffect(() => {
+    if (newFeedback.householdId) {
+      setLoadingUsers(true);
+      const fetchUsers = async () => {
+        try {
+          const accessToken = Cookies.get("accessToken");
+          const res = await getUserInHousehold(accessToken, 1);
+          // Lọc user theo householdId
+          const users = (res.data || []).filter((u: any) => u.householdId === newFeedback.householdId);
+          setUsersInHousehold(users);
+        } catch {
+          setUsersInHousehold([]);
+        } finally {
+          setLoadingUsers(false);
+        }
+      };
+      fetchUsers();
+    } else {
+      setUsersInHousehold([]);
+    }
+  }, [newFeedback.householdId]);
+
+  // Sử dụng dữ liệu thực tế nếu có, fallback về mockFeedback nếu chưa có
+  const feedbackList = Array.isArray(reportUserData) && reportUserData.length > 0
+    ? reportUserData.map((item) => ({
+        id: item.id,
+        residentName: item.User?.fullname || "",
+        apartment: item.Household?.id || "",
+        subject: item.topic,
+        message: item.content,
+        status: item.status === "Đang xử lý" ? "in_progress"
+              : item.status === "Chờ xử lý" ? "pending"
+              : item.status === "Đã giải quyết" ? "resolved"
+              : item.status,
+        createdAt: item.createdAt,
+        response: item.response,
+      }))
+    : [];
+
+  const filteredFeedback = feedbackList.filter(feedback =>
     feedback.residentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     feedback.apartment.toLowerCase().includes(searchTerm.toLowerCase()) ||
     feedback.subject.toLowerCase().includes(searchTerm.toLowerCase())
@@ -72,26 +117,102 @@ const ResidentFeedback = () => {
     }
   };
 
-  const handleStatusChange = (feedbackId: number, newStatus: string) => {
-    // Here you would update the status in your backend
-    console.log(`Updating feedback ${feedbackId} status to ${newStatus}`);
+  const handleStatusChange = async (feedbackId: string, newStatus: string) => {
+    const accessToken = Cookies.get("accessToken");
+    try {
+      if (newStatus === "in_progress") {
+        await updateReportUserStatusInProgress(accessToken, feedbackId);
+        toast({
+          title: "Đã chuyển sang trạng thái Đang xử lý",
+          description: "Phản hồi đã được cập nhật trạng thái.",
+        });
+        queryClient.invalidateQueries({ queryKey: ['reportUser'] });
+      }
+      if (newStatus === "resolved") {
+        await updateReportUserStatusResolved(accessToken, feedbackId);
+        toast({
+          title: "Đã chuyển sang trạng thái Đã giải quyết",
+          description: "Phản hồi đã được cập nhật trạng thái.",
+        });
+        queryClient.invalidateQueries({ queryKey: ['reportUser'] });
+      }
+
+    } catch (error: any) {
+      toast({
+        title: "Lỗi cập nhật trạng thái",
+        description: error?.message || "Không thể cập nhật trạng thái.",
+      });
+    }
   };
 
-  const handleSubmitResponse = (feedbackId: number) => {
-    // Here you would submit the response to your backend
-    console.log(`Submitting response for feedback ${feedbackId}:`, responseText);
-    setRespondingTo(null);
-    setResponseText("");
+  const handleSubmitResponse = async (feedbackId: string) => {
+    try {
+      const accessToken = Cookies.get("accessToken");
+      await updateReportUserResponse(accessToken, {
+        id: feedbackId,
+        response: responseText,
+      });
+      toast({
+        title: "Phản hồi thành công",
+        description: "Phản hồi đã được gửi cho cư dân.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['reportUser'] });
+      setRespondingTo(null);
+      setResponseText("");
+    } catch (error: any) {
+      toast({
+        title: "Lỗi gửi phản hồi",
+        description: error?.message || "Không thể gửi phản hồi.",
+      });
+    }
+  };
+
+  const handleNewFeedbackChange = (field: string, value: string) => {
+    setNewFeedback((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    // Reset userId nếu đổi household
+    if (field === "householdId") {
+      setNewFeedback((prev) => ({ ...prev, userId: "" }));
+    }
+  };
+
+  const handleSubmitNewFeedback = async () => {
+    try {
+      const accessToken = Cookies.get("accessToken");
+      await createReportUserWithType(accessToken, {
+        userId: newFeedback.userId,
+        householdId: newFeedback.householdId,
+        topic: newFeedback.topic,
+        content: newFeedback.content,
+      });
+      toast({
+        title: "Gửi phản hồi thành công",
+        description: "Phản hồi của bạn đã được gửi đến ban quản lý.",
+      });
+      queryClient.invalidateQueries({queryKey: ['reportUser']});
+      setIsDialogOpen(false);
+      setNewFeedback({ householdId: "", userId: "", topic: "", content: "" });
+    } catch (error: any) {
+      toast({
+        title: "Lỗi gửi phản hồi",
+        description: error?.response?.data?.message || "Không thể gửi phản hồi.",
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
             Phản hồi cư dân
           </CardTitle>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            Gửi phản hồi mới
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 mb-6">
@@ -116,7 +237,13 @@ const ResidentFeedback = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFeedback.map((feedback) => (
+              {isLoadingReportUser ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-6">
+                    Đang tải dữ liệu...
+                  </TableCell>
+                </TableRow>
+              ) : filteredFeedback.map((feedback) => (
                 <>
                   <TableRow key={feedback.id}>
                     <TableCell className="font-medium">{feedback.residentName}</TableCell>
@@ -132,15 +259,24 @@ const ResidentFeedback = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setRespondingTo(feedback.id)}>
+                          <DropdownMenuItem onClick={() => {
+                            setRespondingTo(feedback.id);
+                            setResponseText(feedback.response || "");
+                          }}>
                             Phản hồi
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStatusChange(feedback.id, "in_progress")}>
-                            Đánh dấu đang xử lý
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStatusChange(feedback.id, "resolved")}>
-                            Đánh dấu đã giải quyết
-                          </DropdownMenuItem>
+                          {/* Hiển thị "Đánh dấu đang xử lý" nếu chưa ở trạng thái "Đang xử lý" hoặc "Đã giải quyết" */}
+                          {feedback.status !== "in_progress" && feedback.status !== "resolved" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(feedback.id, "in_progress")}>
+                              Đánh dấu đang xử lý
+                            </DropdownMenuItem>
+                          )}
+                          {/* Hiển thị "Đánh dấu đã giải quyết" nếu chưa ở trạng thái "Đã giải quyết" */}
+                          {feedback.status !== "resolved" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(feedback.id, "resolved")}>
+                              Đánh dấu đã giải quyết
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -183,7 +319,7 @@ const ResidentFeedback = () => {
                   </TableRow>
                 </>
               ))}
-              {filteredFeedback.length === 0 && (
+              {!isLoadingReportUser && filteredFeedback.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-6">
                     Không có phản hồi nào
@@ -194,6 +330,87 @@ const ResidentFeedback = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog gửi phản hồi mới */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Gửi phản hồi mới</DialogTitle>
+            <DialogDescription>
+              Vui lòng chọn căn hộ, cư dân và nhập chủ đề, nội dung phản hồi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1 font-medium">Chọn căn hộ</label>
+              <Select
+                value={newFeedback.householdId}
+                onValueChange={(v) => handleNewFeedbackChange("householdId", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn căn hộ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {households.map((h) => (
+                    <SelectItem key={h.householdId || h.id} value={h.householdId || h.id}>
+                      {h.householdId || h.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Chọn cư dân</label>
+              <Select
+                value={newFeedback.userId}
+                onValueChange={(v) => handleNewFeedbackChange("userId", v)}
+                disabled={!newFeedback.householdId || loadingUsers}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingUsers ? "Đang tải..." : "Chọn cư dân"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {usersInHousehold.length === 0 && (
+                    <div className="px-4 py-2 text-muted-foreground">Không có cư dân</div>
+                  )}
+                  {usersInHousehold.map((u) => (
+                    <SelectItem key={u.userId || u.id} value={u.userId || u.id}>
+                      {u.fullname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Input
+              placeholder="Chủ đề phản hồi"
+              value={newFeedback.topic}
+              onChange={(e) => handleNewFeedbackChange("topic", e.target.value)}
+            />
+            <Textarea
+              placeholder="Nội dung phản hồi"
+              value={newFeedback.content}
+              onChange={(e) => handleNewFeedbackChange("content", e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleSubmitNewFeedback}
+              disabled={
+                !newFeedback.householdId ||
+                !newFeedback.userId ||
+                !newFeedback.topic ||
+                !newFeedback.content
+              }
+            >
+              Gửi
+            </Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
