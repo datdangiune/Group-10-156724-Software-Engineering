@@ -21,16 +21,16 @@ app.get('/', (req, res) => {
 })
 
 // Hàm chỉ drop và tạo lại bảng users
-async function syncUserTableOnly() {
-  try {
-    await User.sync({ force: true });
-    console.log('User table synced (dropped and recreated) successfully.');
-  } catch (err) {
-    console.error('Error syncing user table:', err);
-  }
-}
+// async function syncUserTableOnly() {
+//   try {
+//     await User.sync({ force: true });
+//     console.log('User table synced (dropped and recreated) successfully.');
+//   } catch (err) {
+//     console.error('Error syncing user table:', err);
+//   }
+// }
 
-// Gọi hàm này khi cần drop và tạo lại bảng users
+// // Gọi hàm này khi cần drop và tạo lại bảng users
 // syncUserTableOnly();
 
 sequelize.sync({force: false}) // Set force: true to drop and recreate the database

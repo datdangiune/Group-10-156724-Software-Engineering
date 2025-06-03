@@ -37,6 +37,8 @@ import Cookies from "js-cookie";
 import { addHouseholdAndUser } from "@/service/admin_v1";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+
 function getCurrentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -68,6 +70,7 @@ export const AddHouseholdDialog = ({
     );
     const queryClient = useQueryClient();
     const [isLoading, setIsLoading] = useState(false);
+    const [searchApartment, setSearchApartment] = useState("");
   
   const handleApartmentSelect = (value: string) => {
     setSelectedApartment(value);
@@ -204,21 +207,34 @@ export const AddHouseholdDialog = ({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="apartment">Chọn căn hộ</Label>
-                <Select 
-                  value={selectedApartment} 
-                  onValueChange={handleApartmentSelect}
-                >
-                  <SelectTrigger id="apartment">
-                    <SelectValue placeholder="Chọn căn hộ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableApartments?.map((apt) => (
-                      <SelectItem key={apt.id} value={apt.id}>
-                        {`${apt.id} (${apt.area})` } 
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select 
+                    value={selectedApartment} 
+                    onValueChange={handleApartmentSelect}
+                  >
+                    <SelectTrigger id="apartment" className="flex-1">
+                      <SelectValue placeholder="Chọn căn hộ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableApartments
+                        ?.filter(apt =>
+                          apt.id.toLowerCase().includes(searchApartment.toLowerCase()) ||
+                          (apt.area && String(apt.area).includes(searchApartment))
+                        )
+                        .map((apt) => (
+                          <SelectItem key={apt.id} value={apt.id}>
+                            {`${apt.id} (${apt.area})`}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Tìm kiếm..."
+                    value={searchApartment}
+                    onChange={e => setSearchApartment(e.target.value)}
+                    className="w-40"
+                  />
+                </div>
               </div>
 
               <div className="pt-4">

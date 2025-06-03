@@ -4,7 +4,7 @@ const adminController = require('../controller/adminController')
 const adminController_v2 = require('../controller/adminController_V2')
 const {verifyTokenAdmin, verifyTokenKetoan, verifyToken} = require('../middleware/veritify')
 route.get('/household', verifyToken, adminController.getHouseholdUsersInfo)
-route.post('/household', verifyTokenAdmin, adminController.createHousehold)
+route.post('/household', adminController.createHousehold)
 route.post('/addUserToHousehold', verifyTokenAdmin, adminController.addUserToHousehold)
 route.post('/addUser', verifyTokenAdmin, adminController.createUsers)
 route.get('/user', verifyToken, adminController.getAllUsersInHousehold)
@@ -26,7 +26,7 @@ route.get('/fee-collection-data', verifyToken, adminController.getFeeCollectionD
 route.get('/fee-type-distribution', verifyToken, adminController.getFeeTypeDistribution)
 route.get('/active-campaigns', verifyToken, adminController.getActiveCampaigns)
 
-route.post('/addContribution', verifyTokenAdmin, adminController.addContribution)
+route.post('/addContribution', verifyTokenKetoan, adminController.addContribution)
 route.get('/getContribution', verifyToken, adminController.getContribution)
 
 route.get('/total-households', verifyTokenAdmin, adminController.getTotalHouseholds)
