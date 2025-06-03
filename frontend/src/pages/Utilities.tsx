@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { addFeeUtility } from "@/service/admin_v1";
+import { addFeeUtility, importFeeFromExcel } from "@/service/admin_v1";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useHouseholdActive } from "@/hooks/useHouseholds";
 import Cookies from "js-cookie";
@@ -79,6 +79,7 @@ const Utilities = () => {
   const [month, setMonth] = useState(getCurrentMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentUtility, setCurrentUtility] = useState<any>(null);
+  const [importLoading, setImportLoading] = useState(false);
   const { data: households } = useHouseholdActive(month);
   console.log("Households data:", households);
   const queryClient = useQueryClient();
@@ -151,6 +152,28 @@ const Utilities = () => {
 
   };
 
+  // Xử lý import excel
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImportLoading(true);
+    try {
+      await importFeeFromExcel(accessToken, file);
+      queryClient.invalidateQueries({queryKey: ['feeUtility', month]});
+      toast({
+        title: "Import thành công",
+        description: "Dữ liệu tiện ích đã được import từ file Excel.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Lỗi import",
+        description: error?.message || "Không thể import file Excel.",
+      });
+    } finally {
+      setImportLoading(false);
+      event.target.value = ""; // reset input
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -162,12 +185,35 @@ const Utilities = () => {
               Quản lý tiện ích và thu phí tiện ích
             </CardDescription>
           </div>
-          {user?.role === "ketoan" && (
-            <Button onClick={() => handleAddEdit()} className="flex items-center">
-              <Plus className="mr-2 h-4 w-4" />
-              Thêm tiện ích
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {user?.role === "ketoan" && (
+              <>
+                <Button onClick={() => handleAddEdit()} className="flex items-center">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Thêm tiện ích
+                </Button>
+                <label>
+                  <input
+                    type="file"
+                    accept=".xlsx"
+                    style={{ display: "none" }}
+                    onChange={handleImportExcel}
+                    disabled={importLoading}
+                  />
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="flex items-center"
+                    disabled={importLoading}
+                  >
+                    <span>
+                      {importLoading ? "Đang import..." : "Import Excel"}
+                    </span>
+                  </Button>
+                </label>
+              </>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 mb-4">

@@ -154,6 +154,24 @@ export const AddHouseholdDialog = ({
           queryClient.invalidateQueries({queryKey: ["householdInuse"]}); 
           queryClient.invalidateQueries({queryKey: ['householdActive', month]})
           onOpenChange(false);
+
+          // Reset form sau khi gửi thành công
+          setSelectedApartment("");
+          setActiveTab("apartment");
+          setHouseholdData({
+            householdId: `RI${Math.floor(Math.random() * 10000)}`,
+            owner: {
+              email: "",
+              fullname: "",
+              phoneNumber: "",
+              gender: "Nam",
+              dateOfBirth: "",
+              cccd: "",
+              permanentResidence: "",
+              temporaryResidence: "",
+            },
+            members: [],
+          });
       } else {
         toast({
           title: "Lỗi",

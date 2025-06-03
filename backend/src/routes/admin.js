@@ -1,5 +1,6 @@
 const express = require('express')
 const route = express.Router()
+const upload = require('../middleware/upload')
 const adminController = require('../controller/adminController')
 const adminController_v2 = require('../controller/adminController_V2')
 const {verifyTokenAdmin, verifyTokenKetoan, verifyToken} = require('../middleware/veritify')
@@ -39,4 +40,5 @@ route.post('/addContributionPayment', verifyTokenKetoan, adminController.addHous
 route.get('/getContributionPayment', verifyToken, adminController.getContributionPayment)
 route.get('/address', verifyToken, adminController.getAddressUser)
 route.delete('/deleteHousehold', verifyTokenAdmin, adminController.deleteHousehold)
+route.post('/import-fees', verifyTokenKetoan,upload.single('file'), adminController.importFeeFromExcel);
 module.exports = route

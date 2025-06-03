@@ -1,5 +1,6 @@
 const { Household, UserHousehold, User, FeeService,  FeeHousehold, Contribution, ContributionPayment, Vehicle} = require('../models/index');
 const { Op } = require('sequelize');
+const xlsx = require('xlsx');
 const getHouseholdUsersInfo = async (req, res) => {
   try { 
     const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
@@ -1624,7 +1625,106 @@ const getAddressUser = async (req, res) => {
     });
   }
 }
+const importFeeFromExcel = async (req, res) => {
+  const feeServiceIds = {
+    water: 'cf4aa82a-3fb1-42a7-a610-cebd57696424',
+    electricity: 'cf68679f-a97f-4d57-a505-64ffd165ee35',
+    internet: 'a578e224-899b-4646-a1bb-18300ce85cd5',
+  };
+  try {
+    const fileBuffer = req.file.buffer;
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
+    const [feeServiceWater, feeServiceElectric, feeServiceInternet] = await Promise.all([
+      FeeService.findOne({ where: { id: feeServiceIds.water } }),
+      FeeService.findOne({ where: { id: feeServiceIds.electricity } }),
+      FeeService.findOne({ where: { id: feeServiceIds.internet } }),
+    ]);
+
+    const currentDate = new Date();
+    const yyyy = currentDate.getFullYear();
+    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const currentMonth = `${yyyy}-${mm}`;
+
+    const results = [];
+
+    for (const row of sheetData) {
+      const { householdId, water, electricity, internet } = row;
+
+      if (!householdId || water == null || electricity == null || internet == null) {
+        results.push({ householdId, success: false, reason: 'Missing fields' });
+        continue;
+      }
+
+      const household = await Household.findOne({ where: { id: householdId, isActive: true } });
+      if (!household) {
+        results.push({ householdId, success: false, reason: 'Household not found' });
+        continue;
+      }
+
+      const existing = await FeeHousehold.findAll({
+        where: {
+          householdId,
+          month: currentMonth,
+          feeServiceId: { [Op.in]: Object.values(feeServiceIds) },
+        },
+      });
+
+      if (existing.length > 0) {
+        results.push({ householdId, success: false, reason: 'Fees already exist' });
+        continue;
+      }
+
+      const createdRecords = [];
+
+      const waterFee = await FeeHousehold.create({
+        householdId,
+        feeServiceId: feeServiceIds.water,
+        water,
+        amount: water * feeServiceWater.servicePrice,
+        month: currentMonth,
+      });
+      createdRecords.push(waterFee);
+
+      const electricFee = await FeeHousehold.create({
+        householdId,
+        feeServiceId: feeServiceIds.electricity,
+        electricity,
+        amount: electricity * feeServiceElectric.servicePrice,
+        month: currentMonth,
+      });
+      createdRecords.push(electricFee);
+
+      if (internet === true || internet === 'true' || internet === 1 || internet === '1') {
+        const internetFee = await FeeHousehold.create({
+          householdId,
+          feeServiceId: feeServiceIds.internet,
+          internet: true,
+          amount: feeServiceInternet.servicePrice,
+          month: currentMonth,
+        });
+        createdRecords.push(internetFee);
+      }
+
+      results.push({ householdId, success: true, created: createdRecords.length });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Import completed',
+      results,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: err.message,
+    });
+  }
+};
 
 module.exports = {
   getHouseholdUsersInfo,
@@ -1659,6 +1759,7 @@ module.exports = {
   addHouseholdToContribution,
   getContributionPayment,
   deleteHousehold,
-  getAddressUser
+  getAddressUser,
+  importFeeFromExcel
 
 };

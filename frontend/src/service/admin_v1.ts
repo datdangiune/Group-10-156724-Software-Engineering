@@ -793,3 +793,34 @@ export async function getAddress(accessToken: string): Promise<AddressResponse> 
         }
     }
 }
+
+/**
+ * Gửi file .xlsx lên server để import phí tiện ích qua API /admin/import-fees
+ * @param accessToken Token xác thực
+ * @param file File .xlsx (kiểu File hoặc Blob)
+ * @returns Promise<any>
+ */
+export async function importFeeFromExcel(accessToken: string, file: File | Blob): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await axios.post(
+            `${url}/admin/import-fees`,
+            formData,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}
