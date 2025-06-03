@@ -37,6 +37,6 @@ route.get('/user-residence/:userId', verifyTokenAdmin, adminController.getUserRe
 
 route.post('/addContributionPayment', verifyTokenKetoan, adminController.addHouseholdToContribution)
 route.get('/getContributionPayment', verifyToken, adminController.getContributionPayment)
-
+route.get('/address', verifyTokenAdmin, adminController.getAddressUser)
 route.delete('/deleteHousehold', verifyTokenAdmin, adminController.deleteHousehold)
 module.exports = route

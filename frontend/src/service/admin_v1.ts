@@ -76,6 +76,8 @@ export type PersonData = {
   dateOfBirth: string;
   cccd: string;
   roleInFamily?: string;
+  permanentResidence: string;
+  temporaryResidence: string;
 };
 
 export type HouseholdData = {
@@ -758,3 +760,36 @@ export async function getUserResidenceInfo(accessToken: string, userId: string):
   return response.data;
 }
 
+export interface AddressResponse {
+    success: boolean;
+    message: string;
+    data: {
+        id: string;
+        fullname: string;
+        permanentResidence: string;
+        temporaryResidence: string;
+        UserHouseholds: {
+            householdId: string;
+        }[];
+    }[]
+}
+export async function getAddress(accessToken: string): Promise<AddressResponse> {
+    try {
+        const response = await axios.get(`${url}/admin/address`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        });
+        const data: AddressResponse = response.data;
+        if (!response.data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+}

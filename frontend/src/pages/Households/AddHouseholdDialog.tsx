@@ -60,6 +60,8 @@ export const AddHouseholdDialog = ({
       gender: "Nam",
       dateOfBirth: "",
       cccd: "",
+      permanentResidence: "",
+      temporaryResidence: "",
     },
     members: [],
   });
@@ -98,7 +100,9 @@ export const AddHouseholdDialog = ({
           gender: "Nam",
           dateOfBirth: "",
           cccd: "",
-          roleInFamily: ""
+          roleInFamily: "",
+          permanentResidence: "",
+          temporaryResidence: ""
         }
       ]
     }));

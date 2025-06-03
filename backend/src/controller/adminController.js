@@ -102,8 +102,8 @@ const createHousehold = async (req, res) => {
 };
 const addUserToHousehold = async (req, res) => {
   try {
-    const { userId, householdId, roleInFamily, isOwner, joinedAt } = req.body;
-    if (!userId || !householdId || !roleInFamily) {
+    const { userId, householdId, roleInFamily, isOwner, joinedAt, temporaryResidence, permanentResidence} = req.body;
+    if (!userId || !householdId || !roleInFamily ||!temporaryResidence || !permanentResidence) {
       return res.status(400).json({ message: 'Missing required fields: userId, householdId, roleInFamily' });
     }
 
@@ -120,6 +120,8 @@ const addUserToHousehold = async (req, res) => {
       householdId,
       roleInFamily,
       isOwner: isOwner ?? false,
+      temporaryResidence,
+      permanentResidence,
       joinedAt: joinedAt || new Date()
     });
     await Household.update({ isActive: true }, { where: { id: householdId } });
@@ -257,7 +259,7 @@ const getFeeService = async(req, res) => {
 const addHouseholdAndUser = async (req, res) => {
   try {
     const { householdId, owner, members } = req.body;
-    if (!householdId || !owner || !owner.email || !owner.fullname || !owner.phoneNumber || !owner.gender || !owner.dateOfBirth || !owner.cccd) {
+    if (!householdId || !owner || !owner.email || !owner.fullname || !owner.phoneNumber || !owner.gender || !owner.dateOfBirth || !owner.cccd || !owner.permanentResidence || !owner.temporaryResidence) {
       return res.status(400).json({ success: false, message: 'Missing required fields for household or owner' });
     }
 
@@ -274,7 +276,9 @@ const addHouseholdAndUser = async (req, res) => {
       phoneNumber: owner.phoneNumber,
       gender: owner.gender,
       dateOfBirth: owner.dateOfBirth,
-      cccd: owner.cccd
+      cccd: owner.cccd,
+      permanentResidence: owner.permanentResidence,
+      temporaryResidence: owner.temporaryResidence
     });
 
     // Thêm chủ hộ vào UserHousehold
@@ -300,7 +304,9 @@ const addHouseholdAndUser = async (req, res) => {
           phoneNumber: member.phoneNumber,
           gender: member.gender,
           dateOfBirth: member.dateOfBirth,
-          cccd: member.cccd
+          cccd: member.cccd,
+          permanentResidence: member.permanentResidence,
+          temporaryResidence: member.temporaryResidence
         });
         // Thêm vào UserHousehold
         const userHousehold = await UserHousehold.create({
@@ -1587,6 +1593,35 @@ const getUserResidenceInfo = async (req, res) => {
     });
   }
 };
+const getAddressUser = async (req, res) => {
+  try {
+    const user = await User.findAll({
+      attributes: ['id', 'fullname', 'permanentResidence', 'temporaryResidence'],
+      include: [{
+        model: UserHousehold,
+        attributes: ['householdId'],
+      }],
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No users found',
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'Get user address successfully',
+      data: user
+    })
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+}
 
 
 module.exports = {
@@ -1621,6 +1656,7 @@ module.exports = {
   getUnpaidHouseholdDetails,
   addHouseholdToContribution,
   getContributionPayment,
-  deleteHousehold
+  deleteHousehold,
+  getAddressUser
 
 };

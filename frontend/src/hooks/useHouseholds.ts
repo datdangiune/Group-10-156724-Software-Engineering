@@ -22,7 +22,8 @@ import {
     getUnpaidHouseholdDetails,
     getContributionPayment,
 
-    getUserResidenceInfo, // <-- thêm import này
+    getUserResidenceInfo, 
+    getAddress
 } from "@/service/admin_v1";
 import { getAdminInfo } from "@/service/auth";
 import {getVehicle} from "@/service/admin_v2";
@@ -588,6 +589,27 @@ export const useUserResidenceInfo = (userId: string) => {
             }
         },
         enabled: !!userId,
+        staleTime,
+        gcTime,
+    });
+}
+export const useAddress = (addressId: string) => {
+    const { toast } = useToast();
+    const accessToken = Cookies.get("accessToken");
+    return useQuery({
+        queryKey: ['address', addressId],
+        queryFn: async () => {
+            try {
+                const response = await getAddress(accessToken);
+                return response.data;
+            } catch (error) {
+                toast({
+                    title: "Lỗi",
+                    description: "Không thể tải địa chỉ.",
+                });
+            }
+        },
+        enabled: !!addressId,
         staleTime,
         gcTime,
     });

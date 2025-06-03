@@ -17,6 +17,8 @@ type PersonData = {
   dateOfBirth: string;
   cccd: string;
   roleInFamily?: string;
+  permanentResidence: string;
+  temporaryResidence: string;
 };
 
 interface MemberFormProps {
@@ -102,7 +104,24 @@ export const MemberForm = ({ data, onChange, showRole }: MemberFormProps) => {
           placeholder="email@example.com"
         />
       </div>
-
+      <div className="space-y-2">
+        <Label htmlFor="permanentResidence">Địa chỉ thường trú</Label>
+        <Input
+          id="permanentResidence"
+          value={data.permanentResidence}
+          onChange={(e) => handleInputChange("permanentResidence", e)}
+          placeholder="Số nhà, Đường, Phường, Quận, Tỉnh"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="temporaryResidence">Địa chỉ tạm trú</Label>
+        <Input
+          id="temporaryResidence"
+          value={data.temporaryResidence}
+          onChange={(e) => handleInputChange("temporaryResidence", e)}
+          placeholder="Số nhà, Đường, Phường, Quận, Tỉnh"
+        />
+      </div>
       {showRole && (
         <div className="space-y-2 col-span-2">
           <Label htmlFor="roleInFamily">Quan hệ với chủ hộ</Label>

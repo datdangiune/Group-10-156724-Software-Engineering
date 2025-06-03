@@ -7,7 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Edit, Save, X } from "lucide-react";
-
+import { useAddress } from "@/hooks/useHouseholds";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { AddressResponse } from "@/service/admin_v1";
+import Cookies from "js-cookie";
 // Mock data for residents with residence info
 const mockResidents = [
   {
@@ -37,11 +41,14 @@ const ResidenceManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<{[key: string]: string}>({});
+  const { user } = useAuth();
+  const accessToken = Cookies.get("accessToken");
+  const {data: addressData} = useAddress(accessToken)
 
-  const filteredResidents = mockResidents.filter(resident =>
-    resident.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.apartment.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredResidents = Array.isArray(addressData) ? addressData.filter(resident =>
+    resident.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    resident.UserHouseholds[0]?.householdId.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
   const handleEdit = (id: number, type: 'permanent' | 'temporary', currentValue: string) => {
     setEditingId(id);
@@ -132,10 +139,10 @@ const ResidenceManagement = () => {
                 <TableBody>
                   {filteredResidents.map((resident) => (
                     <TableRow key={resident.id}>
-                      <TableCell className="font-medium">{resident.name}</TableCell>
-                      <TableCell>{resident.apartment}</TableCell>
+                      <TableCell className="font-medium">{resident.fullname}</TableCell>
+                      <TableCell>{resident.UserHouseholds[0]?.householdId}</TableCell>
                       <TableCell className="max-w-md">
-                        {renderAddressCell(resident, 'temporary')}
+                        {resident.temporaryResidence}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -155,10 +162,10 @@ const ResidenceManagement = () => {
                 <TableBody>
                   {filteredResidents.map((resident) => (
                     <TableRow key={resident.id}>
-                      <TableCell className="font-medium">{resident.name}</TableCell>
-                      <TableCell>{resident.apartment}</TableCell>
+                      <TableCell className="font-medium">{resident.fullname}</TableCell>
+                      <TableCell>{resident.UserHouseholds[0]?.householdId}</TableCell>
                       <TableCell className="max-w-md">
-                        {renderAddressCell(resident, 'permanent')}
+                        {resident.permanentResidence}
                       </TableCell>
                     </TableRow>
                   ))}
