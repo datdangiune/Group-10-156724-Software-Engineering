@@ -83,7 +83,24 @@ const DashboardLayout = () => {
       { title: "Đóng góp", icon: Heart, path: "/donations" },
     ]
   };
-
+  const testGroup: NavGroup = {
+        title: "Nhóm Kiểm thử",
+    items: [
+      { title: "Quản lý hộ gia đình", icon: Users, path: "/households" },
+      { title: "Quản lý cư dân", icon: User, path: "/residents" },
+      { title: "Quản lý nơi ở", icon: MapPin, path: "/residence" },
+      { title: "Cấu hình phí", icon: FileText, path: "/fees" },
+      { title: "Thu phí hàng tháng", icon: Calendar, path: "/monthly-fees" },
+      { title: "Phí theo căn hộ", icon: Home, path: "/apartment-fees" },
+      { title: "Tiện ích", icon: Droplets, path: "/utilities" },
+      { title: "Chiến dịch quyên góp", icon: Heart, path: "/campaigns" },
+      { title: "Báo cáo thống kê", icon: FileText, path: "/reports" },
+      { title: "Quản lý bãi đỗ xe (Toàn quyền)", icon: Car, path: "/parking" },
+      { title: "Đóng góp", icon: Heart, path: "/donations" },
+      { title: "Phản hồi cư dân", icon: MessageSquare, path: "/feedback" },
+      { title: "Cài đặt tài khoản", icon: Settings, path: "/account" },
+    ]
+  };
   const bottomItems: NavItem[] = [
     { title: "Phản hồi cư dân", icon: MessageSquare, path: "/feedback" },
     { title: "Cài đặt tài khoản", icon: Settings, path: "/account" },
@@ -99,7 +116,9 @@ const DashboardLayout = () => {
     if (user.role === "ketoan") {
       groups.push(accountingGroup);
     }
-    
+    if (user.role === "test") {
+      groups.push(testGroup);
+    }
     return groups;
   };
 
