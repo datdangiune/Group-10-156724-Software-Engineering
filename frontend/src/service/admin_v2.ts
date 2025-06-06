@@ -1,5 +1,5 @@
 import axios from "axios";
-const url = 'http://localhost:3000/api/v1'
+const url = 'https://apis.thaihadtp.id.vn/api/v1'
 interface addVehicleResponse {
     success: boolean;
     message: string;
