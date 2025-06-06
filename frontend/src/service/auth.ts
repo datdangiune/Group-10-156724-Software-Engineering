@@ -13,7 +13,7 @@ interface AdminInfoResponse {
         phoneNumber: string;
     }
 }
-const url = 'https://apis.thaihadtp.id.vn/'
+const url = 'https://apis.thaihadtp.id.vn/api/v1'
 export async function Login (email: string, password: string): Promise<LoginResponse>{
     try {
         const response = await axios.post(`${url}/auth/login`, {
