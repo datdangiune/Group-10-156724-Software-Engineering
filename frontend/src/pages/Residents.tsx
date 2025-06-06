@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
 import { 
   Card, 
@@ -21,12 +22,21 @@ import {
 import { Search, MoreHorizontal } from "lucide-react";
 import { useUserINHouseholds } from "@/hooks/useHouseholds";
 import { useAuth } from "@/contexts/AuthContext";
+import { deleteMember } from "@/service/admin_v1";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useQueryClient } from "@tanstack/react-query";
 const Residents = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useUserINHouseholds(page);
   const { user } = useAuth();
+  const accessToken = Cookies.get("accessToken");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; resident: any | null }>({ open: false, resident: null });
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const residents = data?.data || [];
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
@@ -44,8 +54,32 @@ const Residents = () => {
       ) 
     : [];
     
-  const handleResidentClick = (residentId: number) => {
-    navigate(`/residents/${residentId}`);
+
+  const handleDelete = (resident: any) => {
+    setDeleteModal({ open: true, resident });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.resident) return;
+    setDeleteLoading(true);
+    try {
+      await deleteMember(accessToken, deleteModal.resident.householdId, deleteModal.resident.userId);
+      toast({
+        title: "Xóa thành viên thành công",
+        description: `Đã xóa thành viên ${deleteModal.resident.fullname}.`,
+      });
+      setDeleteModal({ open: false, resident: null });
+      // Có thể cần reload lại dữ liệu, ví dụ:
+      queryClient.invalidateQueries({queryKey: ['userInHouseholds', page]});
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error?.response?.data?.message || error?.message || "Không thể xóa thành viên.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
   };
   
   return (
@@ -91,20 +125,27 @@ const Residents = () => {
                   <TableCell>{resident.householdId}</TableCell>
                   <TableCell>{resident.cccd}</TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/residents/${resident.userId}`)}>
-                          Xem chi tiết
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
-                        <DropdownMenuItem>Xóa</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {user?.role === "admin" ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => navigate(`/residents/${resident.userId}`)}>
+                            Xem chi tiết
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(resident)}
+                          >
+                            Xóa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      null
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -145,6 +186,33 @@ const Residents = () => {
           </div>
         </CardFooter>
       </Card>
+
+      {/* Modal xác nhận xóa thành viên */}
+      <Dialog open={deleteModal.open} onOpenChange={open => { if (!open) setDeleteModal({ open: false, resident: null }); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa thành viên</DialogTitle>
+          </DialogHeader>
+          <div>
+            Bạn có chắc chắn muốn xóa thành viên này không? Thao tác này không thể hoàn tác.
+            <div className="mt-2 text-sm text-destructive">
+              <b>Lưu ý:</b> Nếu muốn xóa chủ hộ, bạn cần chuyển quyền chủ hộ cho thành viên khác trước khi xóa.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModal({ open: false, resident: null })} disabled={deleteLoading}>
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? "Đang xóa..." : "Xóa"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

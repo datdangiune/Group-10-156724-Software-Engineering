@@ -9,7 +9,7 @@ const dotenv = require('dotenv');
 const ReportUser = require('./models/ReportUser');
 const FeeHousehold = require('./models/FeeHousehold');
 dotenv.config();
-const port = 3000;
+const port = 3001;
 app.use(cors())
 
 app.use(cookieParser()); 
@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 // // Gọi hàm này khi cần drop và tạo lại bảng users
 // syncUserTableOnly();
 
-sequelize.sync({alter: true}) // Set force: true to drop and recreate the database
+sequelize.sync({force: false}) // Set force: true to drop and recreate the database
     .then(() => {
         console.log('Database synced successfully.');
         app.listen(port, () => {

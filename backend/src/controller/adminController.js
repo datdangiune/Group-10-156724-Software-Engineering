@@ -1,4 +1,4 @@
-const { Household, UserHousehold, User, FeeService,  FeeHousehold, Contribution, ContributionPayment, Vehicle, ReportUser } = require('../models/index');
+const { Household, UserHousehold, User, FeeService,  FeeHousehold, Contribution, ContributionPayment, Vehicle, ReportUser, SumFeeHousehold} = require('../models/index');
 const { Op } = require('sequelize');
 const xlsx = require('xlsx');
 const getHouseholdUsersInfo = async (req, res) => {
@@ -416,7 +416,6 @@ const getHouseholdActive = async (req, res) => {
 const addFeeUtilityHouseholdPerMonth = async (req, res) => { //Tạm thời fix cứng do UI
   const {
     householdId,
-
     water,
     electricity,
     internet
@@ -871,14 +870,14 @@ const getHouseholdFeePerMonth = async (req, res) => {
   try {
     const households = await Household.findAll({
       attributes: ['id', 'area'],
-      where: {
+        where: {
         isActive: true
       },
       include: [
         {
           model: FeeHousehold,
           where: { month: month },
-          attributes: ['amount', 'status', 'paymentDate', 'feeServiceId', 'id'],
+          attributes: ['amount', 'feeServiceId', 'id', 'status', 'paymentDate'],
           include: [
             {
               model: FeeService,
@@ -897,7 +896,8 @@ const getHouseholdFeePerMonth = async (req, res) => {
             }
           ]
         }
-      ]
+      ],
+      
     });
 
     if (!households) {
@@ -907,7 +907,6 @@ const getHouseholdFeePerMonth = async (req, res) => {
       });
     }
 
-    // Custom data: add totalPrice for each household
     const result = households.map(hh => {
       const fees = hh.FeeHouseholds || [];
       const totalPrice = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
@@ -935,7 +934,7 @@ const getHouseholdFeePerMonth = async (req, res) => {
         }
       };
     });
-
+    
     res.status(200).json({
       success: true,
       message: 'Get household fee per month successfully',
@@ -1241,8 +1240,6 @@ const getUnpaidHouseholds = async (req, res) => {
       raw: true
     });
     const activeIds = activeHouseholds.map(h => h.id);
-
-    // Lấy householdId có ít nhất 1 khoản phí chưa paid trong tháng hiện tại
     const unpaid = await FeeHousehold.findAll({
       where: {
         month: currentMonth,
@@ -1897,7 +1894,101 @@ const updateReportUserStatusResolved = async (req, res) => {
     });
   }
 };
+const addMemberToHousehold = async (req, res) => {
+  try {
+    const { householdId, members } = req.body;
+    if (!householdId || !members || !Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({ success: false, message: 'Missing householdId or members array' });
+    }
 
+
+    // Kiểm tra household tồn tại và isActive
+    const household = await Household.findOne({ where: { id: householdId, isActive: true} });
+    if (!household) {
+      return res.status(404).json({ success: false, message: 'Có lỗi' });
+    }
+
+    let memberResults = [];
+    if (Array.isArray(members) && members.length > 0) {
+      for (const member of members) {
+        if (!member.email || !member.fullname || !member.phoneNumber || !member.gender || !member.dateOfBirth || !member.cccd || !member.roleInFamily) {
+          return res.status(400).json({ success: false, message: 'Each member must have email, fullname, phoneNumber, gender, dateOfBirth, cccd, roleInFamily' });
+        }
+        // Tạo user thành viên
+        const user = await User.create({
+          email: member.email,
+          fullname: member.fullname,
+          phoneNumber: member.phoneNumber,
+          gender: member.gender,
+          dateOfBirth: member.dateOfBirth,
+          cccd: member.cccd,
+          permanentResidence: member.permanentResidence,
+          temporaryResidence: member.temporaryResidence
+        });
+        // Thêm vào UserHousehold
+        const userHousehold = await UserHousehold.create({
+          userId: user.id,
+          householdId,
+          roleInFamily: member.roleInFamily,
+          isOwner: false,
+          joinedAt: new Date()
+        });
+        memberResults.push({ user, userHousehold });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Household owner and members added successfully',
+      members: memberResults.map(m => m.user)
+    });
+  } catch (error) {
+      console.error(error); // <-- in rõ lỗi
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({ success: false, message: 'Email hoặc CCCD đã tồn tại' });
+      }
+      return res.status(500).json({ success: false, error: error.message });
+  } 
+};
+const deleteMember = async (req, res) => {
+  const { userId, householdId } = req.body;
+  if (!userId || !householdId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields: userId, householdId',
+    });
+  }
+  try {
+    const userHousehold = await UserHousehold.findOne({
+      where: { userId, householdId, isOwner: false },
+    });
+    if (!userHousehold) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bạn cần chuyển người khác làm chủ hộ trước khi xóa thành viên',
+      });
+    }
+    // Xóa UserHousehold
+    await UserHousehold.destroy({
+      where: { userId, householdId }
+    });
+    const userCount = await UserHousehold.count({ where: { userId } });
+    if (userCount === 0) {
+      await User.destroy({ where: { id: userId } });
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'Member deleted successfully',
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+}
 module.exports = {
   getHouseholdUsersInfo,
   createHousehold,
@@ -1937,6 +2028,7 @@ module.exports = {
   getReportUser,
   updateReportUserResponse,
   updateReportUserStatusInProgress,
-  updateReportUserStatusResolved
-
+  updateReportUserStatusResolved,
+  addMemberToHousehold,
+  deleteMember
 };

@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -33,7 +32,7 @@ export const MemberForm = ({ data, onChange, showRole }: MemberFormProps) => {
   };
   
   const genderOptions = ["Nam", "Nữ", "Khác"];
-  const roleOptions = ["Vợ", "Chồng", "Con", "Cha", "Mẹ", "Anh/Em", "Họ hàng", "Khác"];
+  const roleOptions = ["Chủ hộ", "Vợ", "Chồng", "Con", "Ông", "Bà", "Khác"];
 
   return (
     <div className="grid grid-cols-2 gap-4">

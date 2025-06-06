@@ -1,5 +1,5 @@
 import axios from "axios";
-const url = 'https://apis.thaihadtp.id.vn/api/v1'
+ const url = 'http://localhost:3001/api/v1'//'https://apis.thaihadtp.id.vn/api/v1'
 export type Household_User = {
     id: string;
     householdId: string;
@@ -80,12 +80,13 @@ export type PersonData = {
   temporaryResidence: string;
 };
 
-export type HouseholdData = {
+export type MemberData = {
   householdId: string;
-  owner: PersonData;
   members: PersonData[];
 };
-
+export type HouseholdData = MemberData & {
+  owner: PersonData;
+}
 export interface AddHouseholdDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -174,6 +175,28 @@ export async function getHouseholdUnactive(accessToken: string): Promise<getHous
 export async function addHouseholdAndUser(data: HouseholdData, accessToken: string) {
     try {
         const response = await axios.post(`${url}/admin/addHouseholdAndUser`, data, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        const result = response.data;
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+        return result;
+    } catch (error) {  
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+        
+    }
+}
+export async function addMemberToHousehold(data: MemberData, accessToken: string) {
+    try {
+        const response = await axios.post(`${url}/admin/addMemberToHousehold`, data, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
@@ -729,6 +752,30 @@ export async function deleteUserHousehold(accessToken: string, householdId: stri
             },
             data: {
                 householdId
+            }
+        });
+        const data = response.data;
+        if (!data.success) {
+            throw new Error(data.message);
+        }
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data.message || 'An error occurred');
+        } else {
+            throw new Error('An unknown error occurred');
+        }
+    }
+    
+}
+export async function deleteMember(accessToken: string, householdId: string, userId: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const response = await axios.delete(`${url}/admin/delete`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+            data: {
+                userId, householdId
             }
         });
         const data = response.data;

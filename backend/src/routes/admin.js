@@ -48,5 +48,6 @@ route.get('/getReportUser', verifyToken, adminController.getReportUser)
 route.put('/updateReportUser', verifyToken, adminController.updateReportUserResponse)
 route.put('/updateReportUserStatusInProgress', verifyToken, adminController.updateReportUserStatusInProgress)
 route.put('/updateReportUserStatusResolved', verifyToken, adminController.updateReportUserStatusResolved)
-
+route.post('/addMemberToHousehold', verifyTokenAdmin, adminController.addMemberToHousehold)
+route.delete('/delete', verifyTokenAdmin, adminController.deleteMember)
 module.exports = route

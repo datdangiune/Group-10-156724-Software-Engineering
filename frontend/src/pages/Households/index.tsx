@@ -25,6 +25,8 @@ import { deleteUserHousehold } from "@/service/admin_v1";
 import Cookies from "js-cookie";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { MemberForm } from "./MemberForm";
+import { addMemberToHousehold, PersonData } from "@/service/admin_v1";
 
 const Households = () => {
   const { toast } = useToast();
@@ -35,6 +37,10 @@ const Households = () => {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [addMemberHouseholdId, setAddMemberHouseholdId] = useState<string | null>(null);
+  const [newMembers, setNewMembers] = useState<PersonData[]>([]);
+  const [isAddMemberLoading, setIsAddMemberLoading] = useState(false);
   const { data, isLoading: isLoadingData, error } = useHouseholds(page);
   const { user } = useAuth();
   const households = data?.data || [];
@@ -91,6 +97,81 @@ const Households = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddMember = (household: any) => {
+    setAddMemberHouseholdId(household.householdId);
+    setNewMembers([
+      {
+        email: "",
+        fullname: "",
+        phoneNumber: "",
+        gender: "Nam",
+        dateOfBirth: "",
+        cccd: "",
+        roleInFamily: "",
+        permanentResidence: "",
+        temporaryResidence: ""
+      }
+    ]);
+    setIsAddMemberOpen(true);
+  };
+
+  const handleMemberChange = (idx: number, field: keyof PersonData, value: string) => {
+    setNewMembers(prev => {
+      const arr = [...prev];
+      arr[idx] = { ...arr[idx], [field]: value };
+      return arr;
+    });
+  };
+
+  const addNewMemberRow = () => {
+    setNewMembers(prev => [
+      ...prev,
+      {
+        email: "",
+        fullname: "",
+        phoneNumber: "",
+        gender: "Nam",
+        dateOfBirth: "",
+        cccd: "",
+        roleInFamily: "",
+        permanentResidence: "",
+        temporaryResidence: ""
+      }
+    ]);
+  };
+
+  const removeNewMemberRow = (idx: number) => {
+    setNewMembers(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleSubmitAddMember = async () => {
+    if (!addMemberHouseholdId) return;
+    setIsAddMemberLoading(true);
+    try {
+      await addMemberToHousehold(
+        { householdId: addMemberHouseholdId, members: newMembers },
+        accessToken
+      );
+      toast({
+        title: "Thêm thành viên thành công",
+        description: "Đã thêm thành viên mới cho hộ gia đình.",
+      });
+      setIsAddMemberOpen(false);
+      setAddMemberHouseholdId(null);
+      setNewMembers([]);
+      queryClient.invalidateQueries({queryKey: ["households", page]});
+      queryClient.invalidateQueries({queryKey: ["userInHouseholds"]});
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error instanceof Error ? error.message : "Không thể thêm thành viên.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddMemberLoading(false);
     }
   };
   
@@ -154,13 +235,13 @@ const Households = () => {
                       </DropdownMenuTrigger>
                       { user?.role === "admin" ? (
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleAddEdit(household)}>
-                            Chỉnh sửa
+                          <DropdownMenuItem onClick={() => handleAddMember(household)}>
+                            Thêm Thành Viên
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(household.householdId)}>
                             Xóa
                           </DropdownMenuItem>
-                      </DropdownMenuContent>
+                        </DropdownMenuContent>
                       ): (
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>
@@ -228,6 +309,54 @@ const Households = () => {
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={isLoading}>
               {isLoading ? "Đang xóa..." : "Xóa"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal thêm thành viên */}
+      <Dialog open={isAddMemberOpen} onOpenChange={open => { if (!open) setIsAddMemberOpen(false); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Thêm thành viên mới</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-2 max-h-[70vh] overflow-y-auto">
+            {newMembers.map((member, idx) => (
+              <div key={idx} className="p-4 border rounded-md space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium">
+                    Thành viên {idx + 1}
+                  </h4>
+                  {newMembers.length > 1 && (
+                    <Button variant="ghost" size="sm" onClick={() => removeNewMemberRow(idx)}>
+                      Xóa
+                    </Button>
+                  )}
+                </div>
+                <MemberForm
+                  data={member}
+                  onChange={(field, value) => handleMemberChange(idx, field, value)}
+                  showRole={true}
+                />
+              </div>
+            ))}
+            <Button variant="outline" onClick={addNewMemberRow}>
+              Thêm thành viên
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddMemberOpen(false)} disabled={isAddMemberLoading}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleSubmitAddMember}
+              disabled={
+                isAddMemberLoading ||
+                newMembers.length === 0 ||
+                newMembers.some(m => Object.values(m).some(v => !v))
+              }
+            >
+              {isAddMemberLoading ? "Đang lưu..." : "Lưu"}
             </Button>
           </DialogFooter>
         </DialogContent>
