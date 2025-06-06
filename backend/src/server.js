@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
 // // Hàm chỉ drop và tạo lại bảng users
 // async function syncUserTableOnly() {
 //   try {
-//     await FeeHousehold.sync({ force: true });
+//     await ReportUser.sync({ force: true });
 //     console.log('User table synced (dropped and recreated) successfully.');
 //   } catch (err) {
 //     console.error('Error syncing user table:', err);

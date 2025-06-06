@@ -34,8 +34,8 @@ Household.hasMany(ContributionPayment, { foreignKey: 'householdId' });
 ContributionPayment.belongsTo(Household, { foreignKey: 'householdId' });
 
 // ReportUser - User - Household
-ReportUser.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(ReportUser, { foreignKey: 'userId' });
+ReportUser.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
+User.hasMany(ReportUser, { foreignKey: 'userId', onDelete: 'CASCADE' });
 
 ReportUser.belongsTo(Household, { foreignKey: 'householdId' });
 Household.hasMany(ReportUser, { foreignKey: 'householdId' });

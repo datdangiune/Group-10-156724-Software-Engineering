@@ -32,7 +32,7 @@ export const MemberForm = ({ data, onChange, showRole }: MemberFormProps) => {
   };
   
   const genderOptions = ["Nam", "Nữ", "Khác"];
-  const roleOptions = ["Chủ hộ", "Vợ", "Chồng", "Con", "Ông", "Bà", "Khác"];
+  const roleOptions = ["Vợ", "Chồng", "Con", "Ông", "Bà", "Khác"];
 
   return (
     <div className="grid grid-cols-2 gap-4">

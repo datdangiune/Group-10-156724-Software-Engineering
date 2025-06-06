@@ -32,7 +32,7 @@ const formatCurrency = (value: number) => {
 const MonthlyFees = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [month, setMonth] = useState("2025-05"); // Default to current month
+  const [month, setMonth] = useState("2025-06"); // Default to current month
   const accessToken = Cookies.get("accessToken");
   const { data: mockMonthlyFees } = useGetAll(month);
   const { user } = useAuth();

@@ -11,17 +11,20 @@ const ReportUser = sequelize.define('ReportUser', {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
-        model: 'users',
-        key: 'id',
+            model: 'users',
+            key: 'id',
         },
+        onDelete: 'CASCADE'
     },
     householdId: {
         type: DataTypes.STRING(6),
         allowNull: false,
         references: {
-        model: 'households',
-        key: 'id',
+            model: 'households',
+            key: 'id',
         },
+        // Nếu muốn xóa household thì xóa luôn report liên quan, thêm nếu cần:
+        // onDelete: 'CASCADE'
     },
     topic: {
         type: DataTypes.STRING,
